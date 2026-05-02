@@ -48,7 +48,7 @@ export default function InvoicePage() {
   const exVat = payment.subtotalExVat ?? Math.round(payment.amount / 1.16);
   const vat = payment.vatAmount ?? (payment.amount - exVat);
   const addOnsEnabled = Object.entries(payment.addOns ?? {}).filter(([, v]) => v).map(([k]) =>
-    ({ library: 'Library Module', transport: 'Transport Module', sms: 'Bulk SMS Module' }[k] ?? k)
+    ({ transport: 'Transport Module', sms: 'Bulk SMS Module' }[k] ?? k)
   );
 
   return (

@@ -27,7 +27,6 @@ const MULTIPLIERS = {
 };
 
 const normalizeAddOns = (addOns = {}) => ({
-  [FEATURE_ADDONS.LIBRARY]: Boolean(addOns?.[FEATURE_ADDONS.LIBRARY]),
   [FEATURE_ADDONS.TRANSPORT]: Boolean(addOns?.[FEATURE_ADDONS.TRANSPORT]),
   [FEATURE_ADDONS.SMS]: Boolean(addOns?.[FEATURE_ADDONS.SMS]),
 });

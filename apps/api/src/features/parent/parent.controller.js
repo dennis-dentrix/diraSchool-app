@@ -10,7 +10,6 @@ import Attendance from '../attendance/Attendance.model.js';
 import Result from '../results/Result.model.js';
 import Payment from '../fees/Payment.model.js';
 import FeeStructure from '../fees/FeeStructure.model.js';
-import ReportCard from '../report-cards/ReportCard.model.js';
 import asyncHandler from '../../utils/asyncHandler.js';
 import { sendSuccess, sendError } from '../../utils/response.js';
 import { paginate } from '../../utils/pagination.js';
@@ -199,33 +198,4 @@ export const getChildResults = asyncHandler(async (req, res) => {
     results,
     meta,
   });
-});
-
-/**
- * GET /api/v1/parent/children/:studentId/report-cards
- * Published report cards only — parents cannot see drafts.
- */
-export const getChildReportCards = asyncHandler(async (req, res) => {
-  const { studentId } = req.params;
-
-  const student = await resolveChild(req, studentId);
-  if (!student) return sendError(res, 'Child not found.', 404);
-
-  const filter = {
-    schoolId: req.user.schoolId,
-    studentId: student._id,
-    status: 'published', // strictly no drafts for parents
-  };
-
-  const total = await ReportCard.countDocuments(filter);
-  const { skip, limit, meta } = paginate(req.query, total);
-
-  const reportCards = await ReportCard.find(filter)
-    .sort({ academicYear: -1, term: -1 })
-    .skip(skip)
-    .limit(limit)
-    .populate('classId', 'name stream levelCategory')
-    .select('-teacherRemarks -principalRemarks'); // remarks are for school records, not parent view
-
-  return sendSuccess(res, { reportCards, meta });
 });

@@ -31,7 +31,6 @@ import parentRoutes from './features/parent/parent.routes.js';
 import auditRoutes from './features/audit/audit.routes.js';
 import settingsRoutes from './features/settings/settings.routes.js';
 import timetableRoutes from './features/timetable/timetable.routes.js';
-import libraryRoutes from './features/library/library.routes.js';
 import transportRoutes from './features/transport/transport.routes.js';
 import adminRoutes from './features/admin/admin.routes.js';
 import dashboardRoutes from './features/dashboard/dashboard.routes.js';
@@ -44,6 +43,7 @@ import lessonPlanRoutes from './features/lesson-plans/lesson-plans.routes.js';
 import smsRoutes from './features/sms/sms.routes.js';
 import visitorRoutes from './features/visitors/visitors.routes.js';
 import checkInRoutes from './features/checkins/checkins.routes.js';
+import leaveRoutes from './features/leave/leave.routes.js';
 
 // ── Startup diagnostic — always runs first, visible in Railway logs ──────────
 // This prints BEFORE validateEnv() so missing vars are visible even if we crash.
@@ -168,7 +168,6 @@ app.use('/api/v1/parent', parentRoutes);
 app.use('/api/v1/audit-logs', auditRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/timetables', timetableRoutes);
-app.use('/api/v1/library', libraryRoutes);
 app.use('/api/v1/transport', transportRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
@@ -180,6 +179,7 @@ app.use('/api/v1/subscriptions', subscriptionRoutes);
 app.use('/api/v1/sms', smsRoutes);
 app.use('/api/v1/visitors', visitorRoutes);
 app.use('/api/v1/checkins', checkInRoutes);
+app.use('/api/v1/leave',    leaveRoutes);
 
 // ── 404 catch-all ────────────────────────────────────────────────────────────
 app.use((req, res) => {

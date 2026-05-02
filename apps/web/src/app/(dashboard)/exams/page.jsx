@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Plus, MoreHorizontal, ClipboardList, ExternalLink, FileText } from 'lucide-react';
@@ -10,7 +10,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { examsApi, classesApi, subjectsApi, getErrorMessage } from '@/lib/api';
 import { capitalize, formatDate } from '@/lib/utils';
-import { EXAM_TYPES, ACADEMIC_YEARS, TERMS, CURRENT_YEAR } from '@/lib/constants';
+import { EXAM_TYPES, ACADEMIC_YEARS, TERMS } from '@/lib/constants';
+import { useSchoolTermDefaults } from '@/hooks/use-school-term-defaults';
 import { PageHeader } from '@/components/shared/page-header';
 import { DataTable } from '@/components/shared/data-table';
 import { Button } from '@/components/ui/button';
@@ -145,6 +146,7 @@ function buildColumns(onDelete, onEnterResults) {
 export default function ExamsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { academicYear: defaultAcademicYear, term: defaultTerm } = useSchoolTermDefaults(['exams', 'term-defaults']);
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(1);
 
@@ -159,13 +161,20 @@ export default function ExamsPage() {
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      academicYear: String(CURRENT_YEAR),
-      term: 'Term 1',
+      academicYear: defaultAcademicYear,
+      term: defaultTerm,
       totalMarks: 100,
       examPaperUrl: '',
     },
   });
   const classId = watch('classId');
+  const formAcademicYear = watch('academicYear');
+  const formTerm = watch('term');
+
+  useEffect(() => {
+    setValue('academicYear', defaultAcademicYear);
+    setValue('term', defaultTerm);
+  }, [defaultAcademicYear, defaultTerm, setValue]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['exams', page, filterClass, filterType, filterTerm, filterYear],
@@ -202,7 +211,12 @@ export default function ExamsPage() {
       toast.success('Exam created');
       queryClient.invalidateQueries({ queryKey: ['exams'] });
       setOpen(false);
-      reset();
+      reset({
+        academicYear: defaultAcademicYear,
+        term: defaultTerm,
+        totalMarks: 100,
+        examPaperUrl: '',
+      });
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -278,7 +292,17 @@ export default function ExamsPage() {
       />
 
       {/* Create dialog */}
-      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
+      <Dialog open={open} onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) {
+          reset({
+            academicYear: defaultAcademicYear,
+            term: defaultTerm,
+            totalMarks: 100,
+            examPaperUrl: '',
+          });
+        }
+      }}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Create Exam</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(createExam)} className="space-y-4">
@@ -342,14 +366,14 @@ export default function ExamsPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Term</Label>
-                <Select defaultValue="Term 1" onValueChange={(v) => setValue('term', v)}>
+                <Select value={formTerm || defaultTerm} onValueChange={(v) => setValue('term', v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{TERMS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
                 <Label>Academic Year</Label>
-                <Select defaultValue={String(CURRENT_YEAR)} onValueChange={(v) => setValue('academicYear', v)}>
+                <Select value={formAcademicYear || defaultAcademicYear} onValueChange={(v) => setValue('academicYear', v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{ACADEMIC_YEARS.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
                 </Select>
@@ -377,7 +401,15 @@ export default function ExamsPage() {
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => { setOpen(false); reset(); }}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => {
+                setOpen(false);
+                reset({
+                  academicYear: defaultAcademicYear,
+                  term: defaultTerm,
+                  totalMarks: 100,
+                  examPaperUrl: '',
+                });
+              }}>Cancel</Button>
               <Button type="submit" disabled={isPending}>{isPending ? 'Creating…' : 'Create Exam'}</Button>
             </DialogFooter>
           </form>

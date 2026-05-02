@@ -113,7 +113,7 @@ export const broadcastSms = asyncHandler(async (req, res) => {
     }).select('guardians');
     phones = collectGuardianPhones(students);
   } else if (target === 'all_staff') {
-    const users = await User.find({ schoolId, isActive: true }).select('phone');
+    const users = await User.find({ schoolId, isActive: true, role: { $ne: 'parent' } }).select('phone');
     const staffPhones = new Set();
     for (const u of users) {
       const p = normalisePhone(u.phone);

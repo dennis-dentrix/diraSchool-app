@@ -6,13 +6,13 @@ import { useQuery } from '@tanstack/react-query';
 import { parentApi, settingsApi } from '@/lib/api';
 import { formatDate, formatCurrency, capitalize } from '@/lib/utils';
 import { ACADEMIC_YEARS, TERMS } from '@/lib/constants';
-import { GraduationCap, School, CalendarDays, Download } from 'lucide-react';
+import { useSchoolTermDefaults } from '@/hooks/use-school-term-defaults';
+import { GraduationCap, School, CalendarDays } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 
 // ── Child Selector ────────────────────────────────────────────────────────────
 function ChildSelector({ children, selected, onSelect }) {
@@ -111,9 +111,14 @@ function TermFilter({ academicYear, term, onYearChange, onTermChange }) {
 }
 
 // ── Fees tab ──────────────────────────────────────────────────────────────────
-function FeesTab({ studentId }) {
-  const [academicYear, setAcademicYear] = useState(String(new Date().getFullYear()));
-  const [term, setTerm] = useState('Term 1');
+function FeesTab({ studentId, defaultAcademicYear, defaultTerm }) {
+  const [academicYear, setAcademicYear] = useState(defaultAcademicYear);
+  const [term, setTerm] = useState(defaultTerm);
+
+  useEffect(() => {
+    setAcademicYear(defaultAcademicYear);
+    setTerm(defaultTerm);
+  }, [defaultAcademicYear, defaultTerm]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['parent-fees', studentId, academicYear, term],
@@ -212,9 +217,14 @@ function FeesTab({ studentId }) {
 }
 
 // ── Attendance tab ────────────────────────────────────────────────────────────
-function AttendanceTab({ studentId }) {
-  const [academicYear, setAcademicYear] = useState(String(new Date().getFullYear()));
-  const [term, setTerm] = useState('Term 1');
+function AttendanceTab({ studentId, defaultAcademicYear, defaultTerm }) {
+  const [academicYear, setAcademicYear] = useState(defaultAcademicYear);
+  const [term, setTerm] = useState(defaultTerm);
+
+  useEffect(() => {
+    setAcademicYear(defaultAcademicYear);
+    setTerm(defaultTerm);
+  }, [defaultAcademicYear, defaultTerm]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['parent-attendance', studentId, academicYear, term],
@@ -290,9 +300,14 @@ function AttendanceTab({ studentId }) {
 }
 
 // ── Results / Assessments tab ─────────────────────────────────────────────────
-function ResultsTab({ studentId }) {
-  const [academicYear, setAcademicYear] = useState(String(new Date().getFullYear()));
-  const [term, setTerm] = useState('Term 1');
+function ResultsTab({ studentId, defaultAcademicYear, defaultTerm }) {
+  const [academicYear, setAcademicYear] = useState(defaultAcademicYear);
+  const [term, setTerm] = useState(defaultTerm);
+
+  useEffect(() => {
+    setAcademicYear(defaultAcademicYear);
+    setTerm(defaultTerm);
+  }, [defaultAcademicYear, defaultTerm]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['parent-results', studentId, academicYear, term],
@@ -343,57 +358,6 @@ function ResultsTab({ studentId }) {
         </div>
       )}
     </div>
-  );
-}
-
-function ReportCardsTab({ studentId }) {
-  const { data, isLoading } = useQuery({
-    queryKey: ['parent-report-cards', studentId],
-    queryFn: async () => {
-      const res = await parentApi.reportCards(studentId);
-      return res.data.data ?? res.data;
-    },
-    enabled: !!studentId,
-  });
-
-  if (isLoading) return <Skeleton className="h-48 w-full" />;
-
-  const cards = Array.isArray(data) ? data : (data?.reportCards ?? []);
-
-  if (!cards.length) {
-    return <p className="text-sm text-muted-foreground py-8 text-center">No published report cards available yet.</p>;
-  }
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm">Published Report Cards</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="divide-y">
-          {cards.map((c) => (
-            <div key={c._id} className="py-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">{c.term} {c.academicYear}</p>
-                <p className="text-xs text-muted-foreground">
-                  Grade: {c.overallGrade ?? 'N/A'} · Status: {c.status}
-                </p>
-              </div>
-              {c.pdfUrl ? (
-                <Button asChild size="sm" variant="outline" className="gap-1.5">
-                  <a href={c.pdfUrl} target="_blank" rel="noreferrer">
-                    <Download className="h-3.5 w-3.5" />
-                    Download
-                  </a>
-                </Button>
-              ) : (
-                <Badge variant="outline">PDF not ready</Badge>
-              )}
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -526,8 +490,9 @@ export default function ParentPortalPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
-  const validTabs = ['fees', 'attendance', 'results', 'reports', 'school'];
+  const validTabs = ['fees', 'attendance', 'results', 'school'];
   const [activeTab, setActiveTab] = useState(validTabs.includes(tabFromUrl) ? tabFromUrl : 'fees');
+  const { academicYear: defaultAcademicYear, term: defaultTerm } = useSchoolTermDefaults(['parent-settings', 'term-defaults']);
 
   const { data: childrenData, isLoading } = useQuery({
     queryKey: ['parent-children'],
@@ -608,7 +573,7 @@ export default function ParentPortalPage() {
         setActiveTab(next);
         router.replace(`/portal?tab=${next}`, { scroll: false });
       }}>
-        <TabsList className="w-full grid grid-cols-5">
+        <TabsList className="w-full grid grid-cols-4">
           <TabsTrigger value="fees" className="text-xs sm:text-sm">
             Fees
           </TabsTrigger>
@@ -618,25 +583,37 @@ export default function ParentPortalPage() {
           <TabsTrigger value="results" className="text-xs sm:text-sm">
             Results
           </TabsTrigger>
-          <TabsTrigger value="reports" className="text-xs sm:text-sm">
-            Report Cards
-          </TabsTrigger>
           <TabsTrigger value="school" className="text-xs sm:text-sm">
             School Info
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="fees" className="mt-4">
-          {selectedChild ? <FeesTab studentId={selectedChild} /> : null}
+          {selectedChild ? (
+            <FeesTab
+              studentId={selectedChild}
+              defaultAcademicYear={defaultAcademicYear}
+              defaultTerm={defaultTerm}
+            />
+          ) : null}
         </TabsContent>
         <TabsContent value="attendance" className="mt-4">
-          {selectedChild ? <AttendanceTab studentId={selectedChild} /> : null}
+          {selectedChild ? (
+            <AttendanceTab
+              studentId={selectedChild}
+              defaultAcademicYear={defaultAcademicYear}
+              defaultTerm={defaultTerm}
+            />
+          ) : null}
         </TabsContent>
         <TabsContent value="results" className="mt-4">
-          {selectedChild ? <ResultsTab studentId={selectedChild} /> : null}
-        </TabsContent>
-        <TabsContent value="reports" className="mt-4">
-          {selectedChild ? <ReportCardsTab studentId={selectedChild} /> : null}
+          {selectedChild ? (
+            <ResultsTab
+              studentId={selectedChild}
+              defaultAcademicYear={defaultAcademicYear}
+              defaultTerm={defaultTerm}
+            />
+          ) : null}
         </TabsContent>
         <TabsContent value="school" className="mt-4">
           <SchoolTab />

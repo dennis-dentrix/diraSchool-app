@@ -257,7 +257,6 @@ export const parentApi = {
   fees: (studentId, params) => api.get(`/parent/children/${studentId}/fees`, { params }),
   attendance: (studentId, params) => api.get(`/parent/children/${studentId}/attendance`, { params }),
   results: (studentId, params) => api.get(`/parent/children/${studentId}/results`, { params }),
-  reportCards: (studentId) => api.get(`/parent/children/${studentId}/report-cards`),
 };
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
@@ -334,19 +333,6 @@ export const timetableApi = {
   delete: (id) => api.delete(`/timetables/${id}`),
 };
 
-// ─── Library ──────────────────────────────────────────────────────────────────
-export const libraryApi = {
-  listBooks: (params) => api.get('/library/books', { params }),
-  getBook: (id) => api.get(`/library/books/${id}`),
-  createBook: (data) => api.post('/library/books', data),
-  updateBook: (id, data) => api.patch(`/library/books/${id}`, data),
-  issueLoan: (data) => api.post('/library/loans', data),
-  listLoans: (params) => api.get('/library/loans', { params }),
-  getLoan: (id) => api.get(`/library/loans/${id}`),
-  returnBook: (id) => api.post(`/library/loans/${id}/return`),
-  markOverdue: (id) => api.patch(`/library/loans/${id}/overdue`),
-};
-
 // ─── Transport ────────────────────────────────────────────────────────────────
 export const transportApi = {
   listRoutes: (params) => api.get('/transport/routes', { params }),
@@ -377,6 +363,19 @@ export const checkInsApi = {
 
 // ─── Geofence settings ────────────────────────────────────────────────────────
 export const geofenceApi = {
-  save:          (data) => api.put('/settings/geofence', data),
-  saveTimings:   (data) => api.put('/settings/checkin-times', data),
+  save:        (data) => api.put('/settings/geofence', data),
+  saveTimings: (data) => api.put('/settings/checkin-times', data),
+};
+
+// ─── Leave management ─────────────────────────────────────────────────────────
+export const leaveApi = {
+  apply:        (data)           => api.post('/leave', data),
+  list:         (params)         => api.get('/leave', { params }),
+  get:          (id)             => api.get(`/leave/${id}`),
+  balances:     (params)         => api.get('/leave/balances', { params }),
+  pendingCount: ()               => api.get('/leave/pending-count'),
+  onLeaveToday: ()               => api.get('/leave/on-leave-today'),
+  approve:      (id, data)       => api.patch(`/leave/${id}/approve`, data),
+  reject:       (id, data)       => api.patch(`/leave/${id}/reject`, data),
+  cancel:       (id)             => api.delete(`/leave/${id}`),
 };

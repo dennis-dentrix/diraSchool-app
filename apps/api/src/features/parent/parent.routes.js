@@ -7,7 +7,6 @@ import {
   getChildFees,
   getChildAttendance,
   getChildResults,
-  getChildReportCards,
 } from './parent.controller.js';
 
 const router = Router();
@@ -21,6 +20,5 @@ router.get('/children', getMyChildren);
 router.get('/children/:studentId/fees', getChildFees);
 router.get('/children/:studentId/attendance', getChildAttendance);
 router.get('/children/:studentId/results', getChildResults);
-router.get('/children/:studentId/report-cards', getChildReportCards);
 
 export default router;

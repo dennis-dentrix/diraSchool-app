@@ -48,7 +48,6 @@ const subscriptionPaymentSchema = new mongoose.Schema(
       min: 1,
     },
     addOns: {
-      library:   { type: Boolean, default: false },
       transport: { type: Boolean, default: false },
       sms:       { type: Boolean, default: false },
     },

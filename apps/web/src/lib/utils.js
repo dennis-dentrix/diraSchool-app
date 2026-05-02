@@ -67,6 +67,13 @@ export function getStatusColor(status) {
   return map[status] ?? 'bg-gray-100 text-gray-800';
 }
 
+/** Returns the bar/text color classes for a fee-collection percentage. */
+export function feeColor(pct) {
+  if (pct >= 80) return { bar: 'bg-emerald-500', text: 'text-emerald-700' };
+  if (pct >= 50) return { bar: 'bg-amber-400',   text: 'text-amber-700'   };
+  return             { bar: 'bg-rose-500',    text: 'text-rose-700'    };
+}
+
 export function buildQueryString(params) {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {

@@ -8,7 +8,6 @@ const createCheckoutSchema = z
     studentCount: z.coerce.number().int().min(1).max(10000),
     planTier: z.enum([PLAN_TIERS.BASIC, PLAN_TIERS.STANDARD, PLAN_TIERS.PREMIUM]).optional(),
     addOns: z.object({
-      [FEATURE_ADDONS.LIBRARY]: z.coerce.boolean().optional(),
       [FEATURE_ADDONS.TRANSPORT]: z.coerce.boolean().optional(),
       [FEATURE_ADDONS.SMS]: z.coerce.boolean().optional(),
     }).optional(),

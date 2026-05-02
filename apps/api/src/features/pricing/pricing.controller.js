@@ -17,7 +17,7 @@ const schema = z.object({
   students: z.coerce.number().int().min(1).max(10000),
   option: z.enum(['per-term', 'annual', 'multi-year']).default('per-term'),
   includeVAT: z.coerce.boolean().default(true),
-  addOns: z.string().optional(), // csv: library,transport,sms
+  addOns: z.string().optional(), // csv: transport,sms
 });
 
 const parseAddOns = (rawAddOns) => {
@@ -45,7 +45,7 @@ export const calculatePrice = (req, res) => {
     return sendError(res, parsed.error.errors[0].message, 400);
   }
 
-  const { students, option, includeVAT } = parsed.data;
+  const { students, option } = parsed.data;
   const selectedAddOns = parseAddOns(parsed.data.addOns);
   const multiplier = MULTIPLIERS[option];
 

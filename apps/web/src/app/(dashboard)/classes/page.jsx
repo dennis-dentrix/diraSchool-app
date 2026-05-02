@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Plus, BookOpen, Users, MoreHorizontal, ChevronRight, GraduationCap, Pencil, UserPlus, Image as ImageIcon, FileText, Eye, ExternalLink, Download } from 'lucide-react';
@@ -9,8 +9,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { classesApi, usersApi, lessonPlansApi, getErrorMessage } from '@/lib/api';
 import { useAuthStore, isAdmin } from '@/store/auth.store';
-import { LEVEL_CATEGORIES, ACADEMIC_YEARS } from '@/lib/constants';
+import { LEVEL_CATEGORIES, ACADEMIC_YEARS, TERMS } from '@/lib/constants';
 import { formatDate } from '@/lib/utils';
+import { useSchoolTermDefaults } from '@/hooks/use-school-term-defaults';
 import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -53,22 +54,31 @@ export default function ClassesPage() {
   const adminUser = isAdmin(user);
   const canManageEnrollmentPromotion =
     adminUser || ['secretary', 'accountant'].includes(user?.role);
+  const { academicYear: defaultAcademicYear, term: defaultTerm } = useSchoolTermDefaults(['classes', 'term-defaults']);
 
   const [open, setOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(CONFIRM_INIT);
   const [promoteDialog, setPromoteDialog] = useState(PROMOTE_INIT);
-  const [filterYear, setFilterYear] = useState(String(new Date().getFullYear()));
+  const [filterYear, setFilterYear] = useState(defaultAcademicYear);
   const [editingClass, setEditingClass] = useState(null);
 
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { academicYear: filterYear, term: 'Term 1' },
+    defaultValues: { academicYear: defaultAcademicYear, term: defaultTerm },
   });
+  const formAcademicYear = watch('academicYear');
+  const formTerm = watch('term');
 
   const editForm = useForm({
     resolver: zodResolver(editSchema),
   });
+
+  useEffect(() => {
+    setFilterYear(defaultAcademicYear);
+    setValue('academicYear', defaultAcademicYear);
+    setValue('term', defaultTerm);
+  }, [defaultAcademicYear, defaultTerm, setValue]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['classes', filterYear],
@@ -137,7 +147,7 @@ export default function ClassesPage() {
       toast.success('Class created');
       queryClient.invalidateQueries({ queryKey: ['classes'] });
       setOpen(false);
-      reset();
+      reset({ academicYear: defaultAcademicYear, term: defaultTerm });
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -547,7 +557,7 @@ export default function ClassesPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Academic Year</Label>
-                <Select defaultValue={filterYear} onValueChange={(v) => setValue('academicYear', v)}>
+                <Select value={formAcademicYear || defaultAcademicYear} onValueChange={(v) => setValue('academicYear', v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {ACADEMIC_YEARS.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
@@ -556,10 +566,10 @@ export default function ClassesPage() {
               </div>
               <div className="space-y-1.5">
                 <Label>Term</Label>
-                <Select defaultValue="Term 1" onValueChange={(v) => setValue('term', v)}>
+                <Select value={formTerm || defaultTerm} onValueChange={(v) => setValue('term', v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {['Term 1', 'Term 2', 'Term 3'].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    {TERMS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

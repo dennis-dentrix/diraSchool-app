@@ -36,13 +36,11 @@ export const PLAN_TIERS = {
 };
 
 export const FEATURE_ADDONS = {
-  LIBRARY: 'library',
   TRANSPORT: 'transport',
   SMS: 'sms',
 };
 
 export const FEATURE_ADDON_PRICING = {
-  [FEATURE_ADDONS.LIBRARY]: 1500,
   [FEATURE_ADDONS.TRANSPORT]: 1500,
   [FEATURE_ADDONS.SMS]: 2000,
 };

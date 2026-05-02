@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Upload, Trash2, Share2, X, Image as ImageIcon, FileText, Eye, UserCheck,
@@ -9,6 +9,7 @@ import {
 import { lessonPlansApi, usersApi, classesApi, subjectsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { TERMS, ACADEMIC_YEARS } from '@/lib/constants';
+import { useSchoolTermDefaults } from '@/hooks/use-school-term-defaults';
 import { formatDate } from '@/lib/utils';
 import { Button }   from '@/components/ui/button';
 import { Badge }    from '@/components/ui/badge';
@@ -27,21 +28,29 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast }    from 'sonner';
 
 const ADMIN_ROLES = ['school_admin', 'director', 'headteacher', 'deputy_headteacher'];
-const CURRENT_YEAR = String(new Date().getFullYear());
 
 function isAdmin(role) { return ADMIN_ROLES.includes(role); }
 
 // ── Upload dialog ─────────────────────────────────────────────────────────────
 function UploadDialog({ open, onClose }) {
+  const { academicYear: defaultAcademicYear, term: defaultTerm } = useSchoolTermDefaults(['lesson-plans', 'term-defaults']);
   const [form, setForm] = useState({
     title: '', description: '', type: 'lesson_plan',
-    academicYear: CURRENT_YEAR, term: 'Term 1', weekNumber: '',
+    academicYear: defaultAcademicYear, term: defaultTerm, weekNumber: '',
     classId: '', subjectId: '',
   });
   const [files, setFiles]       = useState([]);   // File objects
   const [previews, setPreviews] = useState([]);   // object URLs
   const fileRef = useRef();
   const qc = useQueryClient();
+
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      academicYear: defaultAcademicYear,
+      term: defaultTerm,
+    }));
+  }, [defaultAcademicYear, defaultTerm]);
 
   const { data: classesData } = useQuery({
     queryKey: ['classes-list'],
@@ -68,7 +77,7 @@ function UploadDialog({ open, onClose }) {
       toast.success('Lesson plan uploaded. PDF is being generated.');
       qc.invalidateQueries({ queryKey: ['lesson-plans'] });
       onClose();
-      setForm({ title: '', description: '', type: 'lesson_plan', academicYear: CURRENT_YEAR, term: 'Term 1', weekNumber: '', classId: '', subjectId: '' });
+      setForm({ title: '', description: '', type: 'lesson_plan', academicYear: defaultAcademicYear, term: defaultTerm, weekNumber: '', classId: '', subjectId: '' });
       setFiles([]);
       setPreviews([]);
     },
@@ -527,13 +536,18 @@ function PlanCard({ plan, currentUser, onShare, onDelete }) {
 export default function LessonPlansPage() {
   const { user } = useAuthStore();
   const qc = useQueryClient();
+  const { academicYear: defaultAcademicYear } = useSchoolTermDefaults(['lesson-plans', 'term-defaults']);
   const [uploadOpen, setUploadOpen]   = useState(false);
   const [shareTarget, setShareTarget] = useState(null);
   const [filters, setFilters] = useState({
-    academicYear: CURRENT_YEAR,
+    academicYear: defaultAcademicYear,
     term: '',
     type: '',
   });
+
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, academicYear: defaultAcademicYear }));
+  }, [defaultAcademicYear]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['lesson-plans', filters],

@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Plus, Trash2, Printer, ChevronDown, ChevronRight, Copy, Pencil } from 'lucide-react';
+import { Plus, Trash2, Printer, ChevronDown, ChevronRight, Copy, Pencil, Layers } from 'lucide-react';
 import { useForm, useFieldArray } from 'react-hook-form';
-import { feesApi, classesApi, settingsApi, schoolsApi, getErrorMessage } from '@/lib/api';
+import { feesApi, classesApi, schoolsApi, getErrorMessage } from '@/lib/api';
 import { buildDocumentHeaderHtml, getDocumentHeaderCss, getDocumentHeaderData } from '@/lib/document-print';
 import { formatCurrency } from '@/lib/utils';
 import { ACADEMIC_YEARS, TERMS, CURRENT_YEAR, ADMIN_ROLES } from '@/lib/constants';
 import { useAuth } from '@/hooks/use-auth';
+import { useSchoolTermDefaults } from '@/hooks/use-school-term-defaults';
 import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -233,17 +234,22 @@ export default function FeeStructuresPage() {
   const [editingStructure, setEditingStructure] = useState(null);
   const [adaptFromYear, setAdaptFromYear] = useState(String(CURRENT_YEAR - 1));
   const [adaptToYear, setAdaptToYear] = useState(String(CURRENT_YEAR));
-  const [adaptFromTerm, setAdaptFromTerm] = useState('Term 1');
-  const [adaptToTerm, setAdaptToTerm] = useState('Term 1');
+  const [adaptFromTerm, setAdaptFromTerm] = useState(TERMS[0]);
+  const [adaptToTerm, setAdaptToTerm] = useState(TERMS[0]);
   const [adaptClassId, setAdaptClassId] = useState('');
   const [adaptOverwrite, setAdaptOverwrite] = useState(false);
   const canManageStructures = ADMIN_ROLES.includes(user?.role);
+  const {
+    settings: settingsData,
+    academicYear: defaultAcademicYear,
+    term: defaultTerm,
+  } = useSchoolTermDefaults(['settings-structures']);
 
   const { register, handleSubmit, reset, setValue, control, watch } = useForm({
     defaultValues: {
       classId: '',
-      academicYear: String(CURRENT_YEAR),
-      term: 'Term 1',
+      academicYear: defaultAcademicYear,
+      term: defaultTerm,
       notes: '',
       items: [
         { category: 'School Fees', name: 'Tuition Fee', amount: '' },
@@ -253,6 +259,8 @@ export default function FeeStructuresPage() {
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
+  const selectedAcademicYear = watch('academicYear');
+  const selectedTerm = watch('term');
   const items = watch('items');
   const total = items?.reduce((s, i) => s + (Number(i.amount) || 0), 0) ?? 0;
 
@@ -304,13 +312,17 @@ export default function FeeStructuresPage() {
     },
   });
 
-  const { data: settingsData } = useQuery({
-    queryKey: ['settings-structures'],
-    queryFn: async () => {
-      const res = await settingsApi.get();
-      return res.data?.settings ?? res.data?.data ?? res.data;
-    },
-  });
+  useEffect(() => {
+    const previousYear = Number(defaultAcademicYear) > 0
+      ? String(Number(defaultAcademicYear) - 1)
+      : String(CURRENT_YEAR - 1);
+    setAdaptFromYear(previousYear);
+    setAdaptToYear(defaultAcademicYear);
+    setAdaptFromTerm(defaultTerm);
+    setAdaptToTerm(defaultTerm);
+    setValue('academicYear', defaultAcademicYear);
+    setValue('term', defaultTerm);
+  }, [defaultAcademicYear, defaultTerm, setValue]);
 
   const { mutate: createStructure, isPending } = useMutation({
     mutationFn: (data) => feesApi.createStructure({
@@ -324,7 +336,16 @@ export default function FeeStructuresPage() {
       toast.success('Fee structure created');
       queryClient.invalidateQueries({ queryKey: ['fee-structures'] });
       setOpen(false);
-      reset();
+      reset({
+        classId: '',
+        academicYear: defaultAcademicYear,
+        term: defaultTerm,
+        notes: '',
+        items: [
+          { category: 'School Fees', name: 'Tuition Fee', amount: '' },
+          { category: 'School Fees', name: 'Admission Fee (One Time)', amount: '' },
+        ],
+      });
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -460,9 +481,30 @@ export default function FeeStructuresPage() {
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-52" />)}
         </div>
       ) : structures.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <p className="font-medium">No fee structures found</p>
-          <p className="text-sm mt-1">Create a structure for each class and term.</p>
+        <div className="flex flex-col items-center justify-center py-20 gap-4 text-muted-foreground">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+            <Layers className="h-7 w-7 opacity-50" />
+          </div>
+          <div className="text-center space-y-1">
+            <p className="font-semibold text-foreground text-base">
+              {hasFilters ? 'No fee structures match your filters' : 'No fee structures yet'}
+            </p>
+            <p className="text-sm max-w-xs mx-auto">
+              {hasFilters
+                ? 'Try clearing your filters to see all structures.'
+                : 'Set up a fee structure for each class and term so parents and staff know exactly what is owed.'}
+            </p>
+          </div>
+          {!hasFilters && canManageStructures && (
+            <Button size="sm" onClick={() => setOpen(true)}>
+              <Plus className="h-4 w-4" /> Set Up First Fee Structure
+            </Button>
+          )}
+          {hasFilters && (
+            <Button variant="ghost" size="sm" onClick={() => { setFilterYear(''); setFilterTerm(''); setFilterClass(''); }}>
+              Clear Filters
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-8">
@@ -492,7 +534,21 @@ export default function FeeStructuresPage() {
 
       {/* Create dialog */}
       {canManageStructures && (
-      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
+      <Dialog open={open} onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) {
+          reset({
+            classId: '',
+            academicYear: defaultAcademicYear,
+            term: defaultTerm,
+            notes: '',
+            items: [
+              { category: 'School Fees', name: 'Tuition Fee', amount: '' },
+              { category: 'School Fees', name: 'Admission Fee (One Time)', amount: '' },
+            ],
+          });
+        }
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Fee Structure</DialogTitle>
@@ -516,14 +572,14 @@ export default function FeeStructuresPage() {
               </div>
               <div className="space-y-1.5">
                 <Label>Academic Year</Label>
-                <Select defaultValue={String(CURRENT_YEAR)} onValueChange={(v) => setValue('academicYear', v)}>
+                <Select value={selectedAcademicYear || defaultAcademicYear} onValueChange={(v) => setValue('academicYear', v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{ACADEMIC_YEARS.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
                 <Label>Term</Label>
-                <Select defaultValue="Term 1" onValueChange={(v) => setValue('term', v)}>
+                <Select value={selectedTerm || defaultTerm} onValueChange={(v) => setValue('term', v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{TERMS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                 </Select>
@@ -610,7 +666,19 @@ export default function FeeStructuresPage() {
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => { setOpen(false); reset(); }}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => {
+                setOpen(false);
+                reset({
+                  classId: '',
+                  academicYear: defaultAcademicYear,
+                  term: defaultTerm,
+                  notes: '',
+                  items: [
+                    { category: 'School Fees', name: 'Tuition Fee', amount: '' },
+                    { category: 'School Fees', name: 'Admission Fee (One Time)', amount: '' },
+                  ],
+                });
+              }}>Cancel</Button>
               <Button type="submit" disabled={isPending}>{isPending ? 'Creating…' : 'Create Structure'}</Button>
             </DialogFooter>
           </form>

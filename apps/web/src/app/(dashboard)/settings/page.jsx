@@ -63,6 +63,7 @@ function CardEditHeader({ title, description, editing, onEdit, onCancel, onSave,
 export default function SettingsPage() {
   const { user } = useAuthStore();
   const canEdit = ['school_admin', 'director', 'headteacher'].includes(user?.role);
+  const canViewPaymentsSms = ['school_admin', 'director', 'headteacher', 'deputy_headteacher', 'secretary', 'accountant'].includes(user?.role);
   const queryClient = useQueryClient();
 
   const [editingProfile, setEditingProfile] = useState(false);
@@ -241,13 +242,29 @@ export default function SettingsPage() {
 
       <Tabs defaultValue="general" className="w-full">
         <TabsList className="flex w-full sm:w-auto overflow-x-auto">
-          <TabsTrigger value="general" className="gap-1.5"><Building2 className="h-3.5 w-3.5" />General</TabsTrigger>
-          <TabsTrigger value="academic" className="gap-1.5"><BookOpen className="h-3.5 w-3.5" />Academic</TabsTrigger>
-          <TabsTrigger value="events" className="gap-1.5"><CalendarDays className="h-3.5 w-3.5" />Events</TabsTrigger>
-          <TabsTrigger value="payments" className="gap-1.5"><CreditCard className="h-3.5 w-3.5" />Payments</TabsTrigger>
-          <TabsTrigger value="comms" className="gap-1.5"><MessageSquare className="h-3.5 w-3.5" />SMS</TabsTrigger>
+          <TabsTrigger value="general" className="gap-1.5" title="School name, contact, and logo">
+            <Building2 className="h-3.5 w-3.5" aria-hidden />General
+          </TabsTrigger>
+          <TabsTrigger value="academic" className="gap-1.5" title="Term dates and academic year">
+            <BookOpen className="h-3.5 w-3.5" aria-hidden />Academic
+          </TabsTrigger>
+          <TabsTrigger value="events" className="gap-1.5" title="Holidays, closures, and events">
+            <CalendarDays className="h-3.5 w-3.5" aria-hidden />Events
+          </TabsTrigger>
+          {canViewPaymentsSms && (
+            <TabsTrigger value="payments" className="gap-1.5" title="M-Pesa till or paybill number">
+              <CreditCard className="h-3.5 w-3.5" aria-hidden />Payments
+            </TabsTrigger>
+          )}
+          {canViewPaymentsSms && (
+            <TabsTrigger value="comms" className="gap-1.5" title="SMS sender ID and messaging settings">
+              <MessageSquare className="h-3.5 w-3.5" aria-hidden />Communications
+            </TabsTrigger>
+          )}
           {canEdit && (
-            <TabsTrigger value="attendance" className="gap-1.5"><MapPin className="h-3.5 w-3.5" />Attendance</TabsTrigger>
+            <TabsTrigger value="attendance" className="gap-1.5" title="School location and check-in radius">
+              <MapPin className="h-3.5 w-3.5" aria-hidden />Check-in
+            </TabsTrigger>
           )}
         </TabsList>
 
@@ -553,7 +570,7 @@ export default function SettingsPage() {
         </TabsContent>
 
         {/* ── Payments ─────────────────────────────────────────────────────── */}
-        <TabsContent value="payments" className="mt-4">
+        {canViewPaymentsSms && <TabsContent value="payments" className="mt-4">
           <Card>
             <CardEditHeader
               title="M-Pesa Payment Capture"
@@ -584,10 +601,10 @@ export default function SettingsPage() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent>}
 
         {/* ── Communications ───────────────────────────────────────────────── */}
-        <TabsContent value="comms" className="mt-4">
+        {canViewPaymentsSms && <TabsContent value="comms" className="mt-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">SMS Sender ID</CardTitle>
@@ -651,7 +668,7 @@ export default function SettingsPage() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent>}
 
         {/* ── Attendance (admin only) ───────────────────────────────────────── */}
         {canEdit && (

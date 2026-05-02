@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import {
   ArrowRight, Check, Users, GraduationCap, CreditCard,
-  ClipboardCheck, FileText, BookOpen, Library,
+  ClipboardCheck, FileText, BookOpen, Bus,
   Smartphone, Zap, X, ChevronRight,
 } from 'lucide-react';
 import LandingFAQ from './_components/LandingFAQ';
@@ -55,7 +55,6 @@ const jsonLd = {
         'Parent Portal',
         'Staff Management',
         'Timetable Management',
-        'Library Management',
         'Transport Management',
       ],
     },
@@ -249,7 +248,7 @@ const FEATURES = [
   {
     icon: Smartphone,
     title: 'Parent Portal',
-    desc: 'Parents log in to see attendance, results, fee balances, and published report cards in real time — no WhatsApp groups needed.',
+    desc: 'Parents log in to see attendance, results, fee balances, and school updates in real time — no WhatsApp groups needed.',
     color: 'text-orange-600 bg-orange-50',
   },
   {
@@ -271,9 +270,9 @@ const FEATURES = [
     color: 'text-rose-600 bg-rose-50',
   },
   {
-    icon: Library,
-    title: 'Library & Transport',
-    desc: 'Manage your school library catalogue, book loans, and overdue tracking. Assign students to transport routes and manage pickups.',
+    icon: Bus,
+    title: 'Transport',
+    desc: 'Assign students to transport routes, manage pickups, and keep route operations visible to the school office.',
     color: 'text-amber-600 bg-amber-50',
   },
 ];

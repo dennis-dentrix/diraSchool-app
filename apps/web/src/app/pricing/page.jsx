@@ -6,7 +6,7 @@ import * as Collapsible from '@radix-ui/react-collapsible';
 import {
   Check, ChevronDown, Users, BookOpenCheck, BarChart3, Wallet,
   ClipboardCheck, FileText, ShieldCheck, UserCog, CalendarDays,
-  Bus, Library, Infinity, ArrowRight, Zap, Calculator,
+  Bus, Infinity, ArrowRight, Zap, Calculator,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -76,7 +76,6 @@ const FEATURES = [
   { icon: ShieldCheck, label: 'Audit Logging' },
   { icon: UserCog, label: 'Staff Role Management' },
   { icon: CalendarDays, label: 'Timetable Management' },
-  { icon: Library, label: 'Library Management' },
   { icon: Bus, label: 'Transport Management' },
   { icon: Infinity, label: 'Unlimited Users per School' },
 ];
@@ -108,7 +107,7 @@ const FAQS = [
   },
   {
     q: 'Are all features available at every plan level?',
-    a: 'Core platform pricing is the same for all schools. Optional add-ons are billed per term: Library (KES 1,500), Transport (KES 1,500), and Bulk SMS (KES 2,000).',
+    a: 'Core platform pricing is the same for all schools. Optional add-ons are billed per term: Transport (KES 1,500) and Bulk SMS (KES 2,000).',
   },
 ];
 
@@ -166,7 +165,7 @@ function Hero() {
           {[
             ['Under 1% of a student\'s term fees', 'for the whole management system'],
             ['Billed at term start', 'when schools collect fees'],
-            ['Optional add-ons', 'library, transport, bulk SMS'],
+            ['Optional add-ons', 'transport, bulk SMS'],
           ].map(([bold, sub]) => (
             <div key={bold} className="flex flex-col items-center gap-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10">
               <span className="font-semibold text-white">{bold}</span>

@@ -17,7 +17,6 @@ export default function robots() {
           "/report-cards",
           "/subjects",
           "/timetable",
-          "/library",
           "/transport",
           "/audit-logs",
           "/settings",

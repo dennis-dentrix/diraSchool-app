@@ -133,9 +133,20 @@ export const listUsers = asyncHandler(async (req, res) => {
     const roles = String(req.query.role)
       .split(',')
       .map((r) => r.trim())
-      .filter(Boolean);
-    filter.role = roles.length > 1 ? { $in: roles } : roles[0];
+      .filter(Boolean)
+      .filter((r) => r !== ROLES.PARENT); // parent accounts are never staff
+    filter.role = roles.length > 1 ? { $in: roles } : roles[0] ?? { $in: [] };
   }
+
+  // Never expose parent accounts through staff management endpoints
+  if (!filter.role) {
+    filter.role = { $ne: ROLES.PARENT };
+  } else if (typeof filter.role === 'string' && filter.role !== ROLES.PARENT) {
+    // keep single role filter as-is (parent already stripped above)
+  } else if (filter.role?.$in) {
+    // already filtered above
+  }
+
   if (isDeputy(req.user)) {
     const allowed = [...DEPUTY_ALLOWED_TARGET_ROLES];
     if (!filter.role) {

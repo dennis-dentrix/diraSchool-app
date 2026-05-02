@@ -14,6 +14,7 @@ import {
 import { buildDocumentHeaderHtml, getDocumentHeaderCss, getDocumentHeaderData, escapeHtml } from '@/lib/document-print';
 import { formatCurrency, formatDate, getStatusColor, capitalize } from '@/lib/utils';
 import { PAYMENT_METHODS, ACADEMIC_YEARS, TERMS } from '@/lib/constants';
+import { getCurrentTermFromSettings } from '@/lib/school-term';
 import { useAuth } from '@/hooks/use-auth';
 import { PageHeader } from '@/components/shared/page-header';
 import { RefreshButton } from '@/components/shared/refresh-button';
@@ -37,16 +38,6 @@ const schema = z.object({
   term: z.string().min(1, 'Required'),
   notes: z.string().optional(),
 });
-
-function getCurrentTerm(terms) {
-  if (!terms?.length) return 'Term 1';
-  const today = new Date();
-  const active = terms.find((t) => {
-    if (!t.startDate || !t.endDate) return false;
-    return today >= new Date(t.startDate) && today <= new Date(t.endDate);
-  });
-  return active?.name ?? terms[0]?.name ?? 'Term 1';
-}
 
 function ReceiptPreview({ data }) {
   const receiptRef = useRef(null);
@@ -271,7 +262,7 @@ export default function PaymentsPage() {
   const [balanceOpen, setBalanceOpen] = useState(false);
   const [balanceStudentId, setBalanceStudentId] = useState('');
   const [balanceYear, setBalanceYear] = useState(String(new Date().getFullYear()));
-  const [balanceTerm, setBalanceTerm] = useState('Term 1');
+  const [balanceTerm, setBalanceTerm] = useState(TERMS[0]);
   const [search, setSearch] = useState('');
   const [methodFilter, setMethodFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -298,19 +289,21 @@ export default function PaymentsPage() {
   });
 
   const defaultYear = settingsData?.currentAcademicYear ?? String(new Date().getFullYear());
-  const defaultTerm = getCurrentTerm(settingsData?.terms);
+  const defaultTerm = getCurrentTermFromSettings(settingsData);
   const todayIso = new Date().toISOString().split('T')[0];
 
-  const { register, handleSubmit, reset, setValue, formState: { errors }, trigger, getValues } = useForm({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors }, trigger, getValues } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { academicYear: String(new Date().getFullYear()), term: 'Term 1', paymentDate: todayIso },
+    defaultValues: { academicYear: defaultYear, term: defaultTerm, paymentDate: todayIso },
   });
+  const formAcademicYear = watch('academicYear');
+  const formTerm = watch('term');
 
   // Sync defaults when settings load
   useEffect(() => {
     if (settingsData) {
       const year = settingsData.currentAcademicYear ?? String(new Date().getFullYear());
-      const term = getCurrentTerm(settingsData.terms);
+      const term = getCurrentTermFromSettings(settingsData);
       reset({ academicYear: year, term, paymentDate: todayIso });
       setBalanceYear(year);
       setBalanceTerm(term);
@@ -640,7 +633,7 @@ export default function PaymentsPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Academic Year</Label>
-                <Select defaultValue={defaultYear} onValueChange={(v) => setValue('academicYear', v)}>
+                <Select value={formAcademicYear || defaultYear} onValueChange={(v) => setValue('academicYear', v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {ACADEMIC_YEARS.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
@@ -649,7 +642,7 @@ export default function PaymentsPage() {
               </div>
               <div className="space-y-1.5">
                 <Label>Term</Label>
-                <Select defaultValue={defaultTerm} onValueChange={(v) => setValue('term', v)}>
+                <Select value={formTerm || defaultTerm} onValueChange={(v) => setValue('term', v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {TERMS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}

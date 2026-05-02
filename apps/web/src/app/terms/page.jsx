@@ -50,7 +50,7 @@ export default function TermsPage() {
           <p>
             The service provides school administration features including student management, digital
             attendance, fee tracking and payment recording, CBC report card generation, staff management,
-            timetable management, library management, transport tracking, and a parent portal.
+            timetable management, transport tracking, and a parent portal.
           </p>
           <p>
             We reserve the right to modify, suspend, or discontinue any part of the service with

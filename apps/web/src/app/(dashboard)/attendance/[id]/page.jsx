@@ -13,12 +13,13 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 
-// P / A / L / E pill button
+// P / A / L / H / E pill button
 const STATUS_CONFIG = {
-  present: { label: 'P', long: 'Present', color: 'bg-green-500 text-white ring-green-500' },
-  absent:  { label: 'A', long: 'Absent',  color: 'bg-red-500 text-white ring-red-500' },
-  late:    { label: 'L', long: 'Late',    color: 'bg-amber-500 text-white ring-amber-500' },
-  excused: { label: 'E', long: 'Excused', color: 'bg-blue-500 text-white ring-blue-500' },
+  present:  { label: 'P', long: 'Present',  color: 'bg-green-500 text-white ring-green-500' },
+  absent:   { label: 'A', long: 'Absent',   color: 'bg-red-500 text-white ring-red-500' },
+  late:     { label: 'L', long: 'Late',     color: 'bg-amber-500 text-white ring-amber-500' },
+  half_day: { label: 'H', long: 'Half Day', color: 'bg-purple-500 text-white ring-purple-500' },
+  excused:  { label: 'E', long: 'Excused',  color: 'bg-blue-500 text-white ring-blue-500' },
 };
 
 const STATUSES = Object.keys(STATUS_CONFIG);
@@ -112,11 +113,13 @@ export default function AttendanceRegisterPage() {
   // ── Summary counts ────────────────────────────────────────────────────────
   const counts = entries.reduce(
     (acc, e) => { acc[e.status] = (acc[e.status] ?? 0) + 1; return acc; },
-    { present: 0, absent: 0, late: 0, excused: 0 }
+    { present: 0, absent: 0, late: 0, half_day: 0, excused: 0 }
   );
   const total = entries.length;
   const marked = entries.filter((e) => e.status).length;
-  const pct = total > 0 ? Math.round((counts.present / total) * 100) : 0;
+  // Half-day students count as 0.5 for the attendance rate
+  const effectivePresent = counts.present + counts.half_day * 0.5;
+  const pct = total > 0 ? Math.round((effectivePresent / total) * 100) : 0;
 
   if (isLoading) {
     return (
@@ -159,7 +162,7 @@ export default function AttendanceRegisterPage() {
       </div>
 
       {/* ── Attendance rate pills ───────────────────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-5 gap-2">
         {STATUSES.map((s) => {
           const cfg = STATUS_CONFIG[s];
           return (
@@ -284,7 +287,7 @@ export default function AttendanceRegisterPage() {
             <AlertDialogDescription asChild>
               <div className="space-y-3">
                 <p>This will lock the register for <strong>{className}</strong> on {formatDate(data?.date)}.</p>
-                <div className="rounded-lg bg-muted/60 border px-4 py-3 grid grid-cols-4 gap-2 text-center text-sm">
+                <div className="rounded-lg bg-muted/60 border px-4 py-3 grid grid-cols-5 gap-2 text-center text-sm">
                   {STATUSES.map((s) => (
                     <div key={s}>
                       <p className="font-bold text-base tabular-nums">{counts[s]}</p>

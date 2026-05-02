@@ -97,7 +97,7 @@ export const exportStaff = asyncHandler(async (req, res) => {
   // Dynamic import to avoid circular dependency with User model
   const { default: User } = await import('../users/User.model.js');
 
-  const staff = await User.find({ schoolId: req.user.schoolId })
+  const staff = await User.find({ schoolId: req.user.schoolId, role: { $ne: 'parent' } })
     .sort({ lastName: 1 })
     .lean();
 

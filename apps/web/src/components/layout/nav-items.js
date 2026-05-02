@@ -8,7 +8,6 @@ import {
   FileText,
   CreditCard,
   Calendar,
-  Library,
   Bus,
   Settings,
   ShieldAlert,
@@ -19,6 +18,7 @@ import {
   Image,
   MessageSquare,
   UserCheck,
+  Umbrella,
 } from 'lucide-react';
 
 // Role groups
@@ -98,15 +98,15 @@ export const schoolNavItems = [
     roles: ADMIN,
   },
   {
-    label: 'Timetable',
-    href: '/timetable',
-    icon: Calendar,
+    label: 'Leave',
+    href: '/leave',
+    icon: Umbrella,
     roles: ALL_STAFF,
   },
   {
-    label: 'Library',
-    href: '/library',
-    icon: Library,
+    label: 'Timetable',
+    href: '/timetable',
+    icon: Calendar,
     roles: ALL_STAFF,
   },
   {

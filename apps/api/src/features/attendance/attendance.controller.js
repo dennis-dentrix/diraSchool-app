@@ -159,17 +159,20 @@ export const createAttendanceRegister = asyncHandler(async (req, res) => {
 export const listAttendanceRegisters = asyncHandler(async (req, res) => {
   const filter = { schoolId: req.user.schoolId };
 
-  // Teachers may only see registers for their assigned class
+  // Teachers see their own class's registers plus any they were assigned to take
   if ([ROLES.TEACHER, ROLES.DEPARTMENT_HEAD].includes(req.user.role)) {
     const teacherClass = await Class.findOne({
       classTeacherId: req.user._id,
       schoolId: req.user.schoolId,
       isActive: true,
     }).select('_id');
-    if (teacherClass) {
-      filter.classId = teacherClass._id;
-    }
-    // If teacher has no class, return empty (don't show other classes' data)
+
+    const orConditions = [
+      { takenByUserId: req.user._id },
+      { substituteTeacherId: req.user._id },
+    ];
+    if (teacherClass) orConditions.push({ classId: teacherClass._id });
+    filter.$or = orConditions;
   } else if (req.query.classId) {
     filter.classId = req.query.classId;
   }

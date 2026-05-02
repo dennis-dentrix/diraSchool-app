@@ -31,7 +31,6 @@ const VAT = 0.16;
 const fmt = (n) => `KES ${Math.round(n).toLocaleString('en-KE')}`;
 
 const ADD_ON_OPTIONS = [
-  { key: FEATURE_ADDONS.LIBRARY, label: 'Library', price: FEATURE_ADDON_PRICING[FEATURE_ADDONS.LIBRARY] },
   { key: FEATURE_ADDONS.TRANSPORT, label: 'Transport', price: FEATURE_ADDON_PRICING[FEATURE_ADDONS.TRANSPORT] },
   { key: FEATURE_ADDONS.SMS, label: 'Bulk SMS', price: FEATURE_ADDON_PRICING[FEATURE_ADDONS.SMS] },
 ];
@@ -269,7 +268,7 @@ function PaymentHistory() {
               const cfg = PAYMENT_STATUS_CONFIG[p.status] ?? PAYMENT_STATUS_CONFIG.pending;
               const addOnsList = Object.entries(p.addOns ?? {})
                 .filter(([, v]) => v)
-                .map(([k]) => ({ library: 'Library', transport: 'Transport', sms: 'Bulk SMS' }[k] ?? k));
+                .map(([k]) => ({ transport: 'Transport', sms: 'Bulk SMS' }[k] ?? k));
               return (
                 <div key={p._id} className="py-3 border-b last:border-0">
                   <div className="flex items-start justify-between gap-3">
@@ -325,7 +324,6 @@ export default function BillingPage() {
   const queryClient = useQueryClient();
   const [statusToastShown, setStatusToastShown] = useState(false);
   const [addOns, setAddOns] = useState({
-    [FEATURE_ADDONS.LIBRARY]: false,
     [FEATURE_ADDONS.TRANSPORT]: false,
     [FEATURE_ADDONS.SMS]: false,
   });

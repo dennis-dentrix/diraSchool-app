@@ -14,7 +14,7 @@ export const LEVEL_CATEGORIES = Object.values(LEVEL_CATEGORIES_MAP);
 
 export const PAYMENT_METHODS = ['cash', 'mpesa', 'bank'];
 export const EXAM_TYPES = ['opener', 'midterm', 'endterm', 'sba'];
-export const ATTENDANCE_STATUSES = ['present', 'absent', 'late', 'excused'];
+export const ATTENDANCE_STATUSES = ['present', 'absent', 'late', 'half_day', 'excused'];
 export const SUBSCRIPTION_STATUSES = ['trial', 'active', 'suspended', 'expired'];
 export const PLAN_TIERS = Object.values(PLAN_TIERS_MAP);
 export const FEATURE_ADDONS = FEATURE_ADDONS_MAP;

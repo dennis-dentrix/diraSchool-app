@@ -64,10 +64,11 @@ export const EXAM_TYPES = {
 };
 
 export const ATTENDANCE_STATUSES = {
-  PRESENT: 'present',
-  ABSENT: 'absent',
-  LATE: 'late',
-  EXCUSED: 'excused',
+  PRESENT:  'present',
+  ABSENT:   'absent',
+  LATE:     'late',
+  EXCUSED:  'excused',
+  HALF_DAY: 'half_day',
 };
 
 export const ATTENDANCE_REGISTER_STATUSES = {
@@ -174,7 +175,6 @@ export const PLAN_FEATURES = {
   REPORT_CARDS:  'report_cards',
   PARENT_PORTAL: 'parent_portal',
   TIMETABLE:     'timetable',
-  LIBRARY:       'library',
   TRANSPORT:     'transport',
   BULK_IMPORT:   'bulk_import',
   AUDIT_LOG:     'audit_log',
@@ -192,7 +192,6 @@ export const PLAN_FEATURE_MAP = {
     PLAN_FEATURES.REPORT_CARDS,
     PLAN_FEATURES.PARENT_PORTAL,
     PLAN_FEATURES.TIMETABLE,
-    PLAN_FEATURES.LIBRARY,
     PLAN_FEATURES.TRANSPORT,
     PLAN_FEATURES.BULK_IMPORT,
     PLAN_FEATURES.AUDIT_LOG,

@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   ClipboardCheck, ChevronRight, CheckCircle2, Clock, AlertCircle,
-  BarChart3, Users, CalendarDays, Filter,
+  BarChart3, Users, CalendarDays, Filter, UserCheck,
 } from 'lucide-react';
-import { attendanceApi, classesApi, settingsApi, getErrorMessage } from '@/lib/api';
+import { attendanceApi, classesApi, settingsApi, usersApi, getErrorMessage } from '@/lib/api';
 import { formatDate, capitalize } from '@/lib/utils';
 import { useAuthStore, isAdmin } from '@/store/auth.store';
 import { PageHeader } from '@/components/shared/page-header';
@@ -18,8 +18,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { TERMS, ACADEMIC_YEARS, CURRENT_YEAR } from '@/lib/constants';
+import { TERMS, ACADEMIC_YEARS } from '@/lib/constants';
+import { getSchoolTermDefaults } from '@/lib/school-term';
 
 const TODAY = new Date().toISOString().split('T')[0];
 
@@ -49,7 +52,7 @@ function getPeriodParams(period, term, academicYear) {
 
 // ── Aggregate helpers ──────────────────────────────────────────────────────────
 function aggregateRegisters(registers) {
-  const t = { present: 0, absent: 0, late: 0, excused: 0, total: 0 };
+  const t = { present: 0, absent: 0, late: 0, half_day: 0, excused: 0, total: 0 };
   for (const reg of registers) {
     for (const entry of reg.entries ?? []) {
       t[entry.status] = (t[entry.status] ?? 0) + 1;
@@ -65,7 +68,7 @@ function aggregateByClass(registers) {
     const cls = reg.classId;
     const key = typeof cls === 'object' ? cls._id : cls;
     const label = typeof cls === 'object' ? `${cls.name}${cls.stream ? ` ${cls.stream}` : ''}` : '—';
-    if (!map[key]) map[key] = { label, present: 0, absent: 0, late: 0, excused: 0, total: 0 };
+    if (!map[key]) map[key] = { label, present: 0, absent: 0, late: 0, half_day: 0, excused: 0, total: 0 };
     for (const entry of reg.entries ?? []) {
       map[key][entry.status] = (map[key][entry.status] ?? 0) + 1;
       map[key].total += 1;
@@ -86,9 +89,12 @@ function StatCard({ label, value, color, sub }) {
 }
 
 // ── Class register card (Today tab) ───────────────────────────────────────────
-function ClassRegisterCard({ cls, todayReg, onOpen, onTake, isCreating, schoolClosed }) {
+function ClassRegisterCard({ cls, todayReg, onOpen, onTake, isCreating, schoolClosed, classTeacher }) {
   const className = `${cls.name}${cls.stream ? ` ${cls.stream}` : ''}`;
   const studentCount = cls.studentCount ?? 0;
+  const teacherName = classTeacher
+    ? `${classTeacher.firstName} ${classTeacher.lastName}`
+    : null;
 
   if (!todayReg) {
     return (
@@ -102,6 +108,7 @@ function ClassRegisterCard({ cls, todayReg, onOpen, onTake, isCreating, schoolCl
               <p className="font-medium text-sm">{className}</p>
               <p className="text-xs text-muted-foreground">
                 {studentCount > 0 ? `${studentCount} students · ` : ''}
+                {teacherName ? `${teacherName} · ` : ''}
                 {schoolClosed ? 'School closed today' : 'Not taken today'}
               </p>
             </div>
@@ -122,9 +129,11 @@ function ClassRegisterCard({ cls, todayReg, onOpen, onTake, isCreating, schoolCl
 
   const isSubmitted = todayReg.status === 'submitted';
   const entries = todayReg.entries ?? [];
-  const presentCount = entries.filter((e) => e.status === 'present').length;
-  const absentCount = entries.filter((e) => e.status === 'absent').length;
-  const rate = entries.length > 0 ? Math.round((presentCount / entries.length) * 100) : 0;
+  const presentCount  = entries.filter((e) => e.status === 'present').length;
+  const absentCount   = entries.filter((e) => e.status === 'absent').length;
+  const halfDayCount  = entries.filter((e) => e.status === 'half_day').length;
+  const effectivePresent = presentCount + halfDayCount * 0.5;
+  const rate = entries.length > 0 ? Math.round((effectivePresent / entries.length) * 100) : 0;
 
   return (
     <Card
@@ -146,8 +155,13 @@ function ClassRegisterCard({ cls, todayReg, onOpen, onTake, isCreating, schoolCl
             <p className="font-medium text-sm">{className}</p>
             <p className="text-xs text-muted-foreground">
               {isSubmitted
-                ? `Submitted · ${presentCount}P · ${absentCount}A`
+                ? `Submitted · ${presentCount}P · ${absentCount}A${halfDayCount > 0 ? ` · ${halfDayCount}H` : ''}`
                 : `Draft · ${entries.length} entries`}
+              {todayReg.isSubstitute && todayReg.substituteTeacherId && (
+                <span className="ml-1 text-blue-600">
+                  · Sub: {todayReg.substituteTeacherId.firstName} {todayReg.substituteTeacherId.lastName}
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -183,7 +197,8 @@ function RegisterRow({ reg, onOpen }) {
   const isSubmitted = reg.status === 'submitted';
   const entries = reg.entries ?? [];
   const presentCount = entries.filter((e) => e.status === 'present').length;
-  const rate = entries.length > 0 ? Math.round((presentCount / entries.length) * 100) : 0;
+  const halfDayCount = entries.filter((e) => e.status === 'half_day').length;
+  const rate = entries.length > 0 ? Math.round(((presentCount + halfDayCount * 0.5) / entries.length) * 100) : 0;
 
   return (
     <div
@@ -227,15 +242,20 @@ function RegisterRow({ reg, onOpen }) {
 }
 
 // ── Records tab ────────────────────────────────────────────────────────────────
-function RecordsTab({ classes, adminView }) {
+function RecordsTab({ classes, adminView, defaultTerm, defaultAcademicYear }) {
   const router = useRouter();
   const [quickPeriod, setQuickPeriod] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [term, setTerm] = useState(TERMS[0]);
-  const [academicYear, setAcademicYear] = useState(String(CURRENT_YEAR));
+  const [term, setTerm] = useState(defaultTerm);
+  const [academicYear, setAcademicYear] = useState(defaultAcademicYear);
   const [page, setPage] = useState(1);
   const LIMIT = 20;
+
+  useEffect(() => {
+    setTerm(defaultTerm);
+    setAcademicYear(defaultAcademicYear);
+  }, [defaultTerm, defaultAcademicYear]);
 
   // Teacher has exactly one class — always scope to it; don't let filter override
   const forcedClassId = !adminView && classes.length === 1 ? classes[0]._id : null;
@@ -359,11 +379,16 @@ function RecordsTab({ classes, adminView }) {
 }
 
 // ── Summary tab ────────────────────────────────────────────────────────────────
-function SummaryTab({ classes }) {
+function SummaryTab({ classes, defaultTerm, defaultAcademicYear }) {
   const [period, setPeriod] = useState('week');
   const [summaryClass, setSummaryClass] = useState('');
-  const [term, setTerm] = useState(TERMS[0]);
-  const [academicYear, setAcademicYear] = useState(String(CURRENT_YEAR));
+  const [term, setTerm] = useState(defaultTerm);
+  const [academicYear, setAcademicYear] = useState(defaultAcademicYear);
+
+  useEffect(() => {
+    setTerm(defaultTerm);
+    setAcademicYear(defaultAcademicYear);
+  }, [defaultTerm, defaultAcademicYear]);
 
   const forcedClassId = classes.length === 1 ? classes[0]._id : null;
 
@@ -391,7 +416,9 @@ function SummaryTab({ classes }) {
   const registers = data?.data ?? data?.registers ?? [];
   const totals = useMemo(() => aggregateRegisters(registers), [registers]);
   const byClass = useMemo(() => aggregateByClass(registers), [registers]);
-  const attendanceRate = totals.total > 0 ? Math.round((totals.present / totals.total) * 100) : null;
+  const attendanceRate = totals.total > 0
+    ? Math.round(((totals.present + (totals.half_day ?? 0) * 0.5) / totals.total) * 100)
+    : null;
 
   const periodLabel = { today: 'Today', week: 'This Week', month: 'This Month', term: `${term} ${academicYear}` }[period] ?? '';
 
@@ -447,14 +474,15 @@ function SummaryTab({ classes }) {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
             <StatCard
-              label="Present" value={totals.present} color="bg-green-50 text-green-700"
+              label="Present"  value={totals.present}   color="bg-green-50 text-green-700"
               sub={totals.total > 0 ? `${Math.round((totals.present / totals.total) * 100)}%` : undefined}
             />
-            <StatCard label="Absent"  value={totals.absent}  color="bg-red-50 text-red-700" />
-            <StatCard label="Late"    value={totals.late}    color="bg-amber-50 text-amber-700" />
-            <StatCard label="Excused" value={totals.excused} color="bg-blue-50 text-blue-700" />
+            <StatCard label="Absent"   value={totals.absent}            color="bg-red-50 text-red-700" />
+            <StatCard label="Late"     value={totals.late}              color="bg-amber-50 text-amber-700" />
+            <StatCard label="Half Day" value={totals.half_day ?? 0}     color="bg-purple-50 text-purple-700" />
+            <StatCard label="Excused"  value={totals.excused}           color="bg-blue-50 text-blue-700" />
           </div>
 
           {attendanceRate !== null && (
@@ -488,7 +516,7 @@ function SummaryTab({ classes }) {
               <CardContent className="p-0">
                 <div className="divide-y">
                   {byClass.map((row) => {
-                    const rate = row.total > 0 ? Math.round((row.present / row.total) * 100) : 0;
+                    const rate = row.total > 0 ? Math.round(((row.present + (row.half_day ?? 0) * 0.5) / row.total) * 100) : 0;
                     return (
                       <div key={row.label} className="flex items-center justify-between px-4 py-2.5">
                         <p className="text-sm font-medium">{row.label}</p>
@@ -497,6 +525,7 @@ function SummaryTab({ classes }) {
                             <span className="text-green-700 font-medium">{row.present}P</span>
                             <span className="text-red-700 font-medium">{row.absent}A</span>
                             {row.late > 0 && <span className="text-amber-700 font-medium">{row.late}L</span>}
+                            {(row.half_day ?? 0) > 0 && <span className="text-purple-700 font-medium">{row.half_day}H</span>}
                           </div>
                           <Badge
                             className={`text-xs font-semibold min-w-[3rem] justify-center ${
@@ -546,6 +575,7 @@ export default function AttendancePage() {
   });
 
   const schoolClosedReason = checkSchoolClosedToday(schoolSettings);
+  const termDefaults = useMemo(() => getSchoolTermDefaults(schoolSettings), [schoolSettings]);
 
   const { data: classesData, isLoading: classesLoading } = useQuery({
     queryKey: isTeacher ? ['my-class'] : ['classes'],
@@ -577,23 +607,59 @@ export default function AttendancePage() {
     },
   });
 
+  // Substitute teacher assignment dialog (admin only)
+  const [assignDialog, setAssignDialog] = useState({ open: false, classId: null });
+  const [substituteId, setSubstituteId] = useState('');
+
+  const { data: teachersData } = useQuery({
+    queryKey: ['teachers-list'],
+    queryFn: async () => {
+      const res = await usersApi.list({ role: 'teacher', limit: 100 });
+      const res2 = await usersApi.list({ role: 'department_head', limit: 100 });
+      const all = [
+        ...(res.data?.data ?? res.data?.users ?? []),
+        ...(res2.data?.data ?? res2.data?.users ?? []),
+      ];
+      return all;
+    },
+    enabled: adminView,
+  });
+  const teachersList = teachersData ?? [];
+
   const { mutate: createRegister, isPending: isCreating } = useMutation({
-    mutationFn: (classId) => attendanceApi.createRegister({ classId, date: TODAY }),
+    mutationFn: ({ classId, substituteTeacherId }) =>
+      attendanceApi.createRegister({
+        classId,
+        date: TODAY,
+        ...(substituteTeacherId ? { substituteTeacherId } : {}),
+      }),
     onSuccess: (res) => {
       const newId = res.data?.register?._id ?? res.data?.data?._id ?? res.data?._id;
       queryClient.invalidateQueries({ queryKey: ['attendance-today'] });
+      setAssignDialog({ open: false, classId: null });
+      setSubstituteId('');
       if (newId) router.push(`/attendance/${newId}`);
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
+  function handleTakeAttendance(classId) {
+    if (adminView) {
+      setSubstituteId('');
+      setAssignDialog({ open: true, classId });
+    } else {
+      createRegister({ classId });
+    }
+  }
+
   const today = Array.isArray(todayRegisters) ? todayRegisters : [];
 
-  const todayDone  = today.filter((r) => r.status === 'submitted').length;
-  const allEntries = today.flatMap((r) => r.entries ?? []);
-  const presentToday = allEntries.filter((e) => e.status === 'present').length;
-  const absentToday  = allEntries.filter((e) => e.status === 'absent').length;
-  const rateToday    = allEntries.length > 0 ? Math.round((presentToday / allEntries.length) * 100) : 0;
+  const todayDone    = today.filter((r) => r.status === 'submitted').length;
+  const allEntries   = today.flatMap((r) => r.entries ?? []);
+  const presentToday  = allEntries.filter((e) => e.status === 'present').length;
+  const halfDayToday  = allEntries.filter((e) => e.status === 'half_day').length;
+  const absentToday   = allEntries.filter((e) => e.status === 'absent').length;
+  const rateToday     = allEntries.length > 0 ? Math.round(((presentToday + halfDayToday * 0.5) / allEntries.length) * 100) : 0;
 
   return (
     <div className="space-y-5">
@@ -654,6 +720,7 @@ export default function AttendancePage() {
               </div>
             </div>
           ) : (
+            <>
             <div className="space-y-2">
               {classes.map((cls) => {
                 const todayReg = today.find((r) => {
@@ -665,25 +732,85 @@ export default function AttendancePage() {
                     key={cls._id}
                     cls={cls}
                     todayReg={todayReg}
+                    classTeacher={cls.classTeacherId}
                     onOpen={(id) => router.push(`/attendance/${id}`)}
-                    onTake={(classId) => createRegister(classId)}
+                    onTake={handleTakeAttendance}
                     isCreating={isCreating}
                     schoolClosed={!!schoolClosedReason}
                   />
                 );
               })}
             </div>
+
+            {/* Assign substitute teacher dialog (admin) */}
+            <Dialog open={assignDialog.open} onOpenChange={(v) => {
+              if (!v) { setAssignDialog({ open: false, classId: null }); setSubstituteId(''); }
+            }}>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4 text-primary" />
+                    Start Attendance Register
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3 py-1">
+                  <div className="space-y-1.5">
+                    <Label>Assign to teacher</Label>
+                    <Select value={substituteId} onValueChange={setSubstituteId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Class teacher (default)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__default__">Class teacher (default)</SelectItem>
+                        {teachersList.map((t) => (
+                          <SelectItem key={t._id} value={t._id}>
+                            {t.firstName} {t.lastName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Leave as default if the class teacher will take attendance. Select another teacher if they are covering today.
+                    </p>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => { setAssignDialog({ open: false, classId: null }); setSubstituteId(''); }}>
+                    Cancel
+                  </Button>
+                  <Button
+                    disabled={isCreating}
+                    onClick={() => createRegister({
+                      classId: assignDialog.classId,
+                      substituteTeacherId: (substituteId && substituteId !== '__default__') ? substituteId : undefined,
+                    })}
+                  >
+                    {isCreating ? 'Starting…' : 'Start Register'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            </>
           )}
         </TabsContent>
 
         {/* ── Records Tab ───────────────────────────────────────────────────── */}
         <TabsContent value="records">
-          <RecordsTab classes={classes} adminView={adminView} />
+          <RecordsTab
+            classes={classes}
+            adminView={adminView}
+            defaultTerm={termDefaults.term}
+            defaultAcademicYear={termDefaults.academicYear}
+          />
         </TabsContent>
 
         {/* ── Summary Tab ───────────────────────────────────────────────────── */}
         <TabsContent value="summary">
-          <SummaryTab classes={classes} />
+          <SummaryTab
+            classes={classes}
+            defaultTerm={termDefaults.term}
+            defaultAcademicYear={termDefaults.academicYear}
+          />
         </TabsContent>
       </Tabs>
     </div>

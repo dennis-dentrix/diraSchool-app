@@ -7,7 +7,8 @@ import { Zap, MoreHorizontal, Save, BookOpen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { reportCardsApi, classesApi, studentsApi, examsApi, resultsApi, getErrorMessage } from '@/lib/api';
 import { getStatusColor, capitalize } from '@/lib/utils';
-import { ACADEMIC_YEARS, TERMS, CURRENT_YEAR } from '@/lib/constants';
+import { ACADEMIC_YEARS, TERMS } from '@/lib/constants';
+import { useSchoolTermDefaults } from '@/hooks/use-school-term-defaults';
 import { PageHeader } from '@/components/shared/page-header';
 import { DataTable } from '@/components/shared/data-table';
 import { Button } from '@/components/ui/button';
@@ -88,10 +89,11 @@ function buildRcColumns(onPublish, onView, onPrint) {
 function ReportCardsTab({ classesData, studentsData }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { academicYear: defaultAcademicYear, term: defaultTerm } = useSchoolTermDefaults(['report-cards', 'term-defaults']);
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState(false);
   const [genType, setGenType] = useState('student');
-  const [genData, setGenData] = useState({ academicYear: String(CURRENT_YEAR), term: 'Term 1' });
+  const [genData, setGenData] = useState({ academicYear: defaultAcademicYear, term: defaultTerm });
 
   const [classFilter,  setClassFilter]  = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -99,6 +101,14 @@ function ReportCardsTab({ classesData, studentsData }) {
   const [yearFilter,   setYearFilter]   = useState('');
 
   const hasFilters = classFilter || statusFilter || termFilter || yearFilter;
+
+  useEffect(() => {
+    setGenData((prev) => ({
+      ...prev,
+      academicYear: defaultAcademicYear,
+      term: defaultTerm,
+    }));
+  }, [defaultAcademicYear, defaultTerm]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['report-cards', page, classFilter, statusFilter, termFilter, yearFilter],
@@ -240,14 +250,14 @@ function ReportCardsTab({ classesData, studentsData }) {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Academic Year</Label>
-                <Select defaultValue={genData.academicYear} onValueChange={(v) => setGenData((p) => ({ ...p, academicYear: v }))}>
+                <Select value={genData.academicYear} onValueChange={(v) => setGenData((p) => ({ ...p, academicYear: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{ACADEMIC_YEARS.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
                 <Label>Term</Label>
-                <Select defaultValue={genData.term} onValueChange={(v) => setGenData((p) => ({ ...p, term: v }))}>
+                <Select value={genData.term} onValueChange={(v) => setGenData((p) => ({ ...p, term: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{TERMS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                 </Select>

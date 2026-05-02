@@ -9,7 +9,8 @@ import {
 } from 'lucide-react';
 import { timetableApi, classesApi, subjectsApi, usersApi, settingsApi, getErrorMessage } from '@/lib/api';
 import { useAuthStore, isAdmin } from '@/store/auth.store';
-import { ACADEMIC_YEARS, TERMS, CURRENT_YEAR } from '@/lib/constants';
+import { ACADEMIC_YEARS, TERMS } from '@/lib/constants';
+import { useSchoolTermDefaults } from '@/hooks/use-school-term-defaults';
 import { formatDate } from '@/lib/utils';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -371,12 +372,19 @@ function SlotDialog({ open, onClose, initial, subjects, teachers, onSave, teache
 // ── Class timetable tab ────────────────────────────────────────────────────────
 function ClassTimetableTab({ canWrite }) {
   const queryClient = useQueryClient();
+  const { academicYear: defaultAcademicYear, term: defaultTerm } = useSchoolTermDefaults(['timetable', 'term-defaults']);
   const [selectedClass, setSelectedClass] = useState('');
-  const [selectedTerm, setSelectedTerm] = useState(TERMS[0]);
-  const [selectedYear, setSelectedYear] = useState(String(CURRENT_YEAR));
+  const [selectedTerm, setSelectedTerm] = useState(defaultTerm);
+  const [selectedYear, setSelectedYear] = useState(defaultAcademicYear);
   const [editMode, setEditMode] = useState(false);
   const [localSlots, setLocalSlots] = useState([]);
   const [slotDialog, setSlotDialog] = useState({ open: false, initial: null });
+
+  useEffect(() => {
+    setSelectedTerm(defaultTerm);
+    setSelectedYear(defaultAcademicYear);
+    setEditMode(false);
+  }, [defaultTerm, defaultAcademicYear]);
 
   const { data: classesData, isError: classesError } = useQuery({
     queryKey: ['classes'],
@@ -647,8 +655,14 @@ function ClassTimetableTab({ canWrite }) {
 
 // ── My Schedule tab (teacher) ──────────────────────────────────────────────────
 function MyScheduleTab({ userId }) {
-  const [selectedTerm, setSelectedTerm] = useState(TERMS[0]);
-  const [selectedYear, setSelectedYear] = useState(String(CURRENT_YEAR));
+  const { academicYear: defaultAcademicYear, term: defaultTerm } = useSchoolTermDefaults(['timetable', 'term-defaults']);
+  const [selectedTerm, setSelectedTerm] = useState(defaultTerm);
+  const [selectedYear, setSelectedYear] = useState(defaultAcademicYear);
+
+  useEffect(() => {
+    setSelectedTerm(defaultTerm);
+    setSelectedYear(defaultAcademicYear);
+  }, [defaultTerm, defaultAcademicYear]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['my-timetable', userId, selectedTerm, selectedYear],
