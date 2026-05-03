@@ -111,6 +111,8 @@ const paymentSchema = new mongoose.Schema(
 
 // Composite index for fetching a student's payments in a given term
 paymentSchema.index({ schoolId: 1, studentId: 1, academicYear: 1, term: 1 });
+// Dashboard aggregations: filter by schoolId+status, range/sort on createdAt
+paymentSchema.index({ schoolId: 1, status: 1, createdAt: -1 });
 
 // Auto-assign a sequential receipt number before first save.
 // Uses a Redis atomic INCR per school-year to eliminate race conditions.

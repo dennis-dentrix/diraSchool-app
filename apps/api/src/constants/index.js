@@ -206,4 +206,5 @@ export const CACHE_TTL = {
   SCHOOL_SETTINGS: 30 * 60,       // 30 minutes
   SUBJECT_LIST: 15 * 60,          // 15 minutes
   SCHOOL_INFO: 5 * 60,            // 5 minutes (name, phone, county — rarely changes)
+  DASHBOARD: 2 * 60,              // 2 minutes — expensive aggregations, invalidate on writes
 };

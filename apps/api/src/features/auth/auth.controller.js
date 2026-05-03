@@ -7,7 +7,8 @@ import User from '../users/User.model.js';
 import asyncHandler from '../../utils/asyncHandler.js';
 import { sendSuccess, sendError } from '../../utils/response.js';
 import { env } from '../../config/env.js';
-import { ROLES, SUBSCRIPTION_STATUSES, PLAN_TIERS, JOB_NAMES } from '../../constants/index.js';
+import { ROLES, SUBSCRIPTION_STATUSES, PLAN_TIERS, JOB_NAMES, CACHE_TTL } from '../../constants/index.js';
+import { cacheGet, cacheSet } from '../../config/redis.js';
 import { normalisePhone } from '../../utils/phone.js';
 import {
   sendVerificationEmail,
@@ -74,8 +75,17 @@ const buildAuthUser = async (userDoc) => {
     return user;
   }
 
+  const schoolInfoKey = `school:info:${user.schoolId}`;
+  try {
+    const cached = await cacheGet(schoolInfoKey);
+    if (cached) { user.school = cached; return user; }
+  } catch { /* Redis unavailable — fall through */ }
+
   const school = await School.findById(user.schoolId).select(SCHOOL_SAFE_FIELDS).lean();
   user.school = school ?? null;
+  if (school) {
+    try { await cacheSet(schoolInfoKey, school, CACHE_TTL.SCHOOL_INFO); } catch { /* non-fatal */ }
+  }
   return user;
 };
 

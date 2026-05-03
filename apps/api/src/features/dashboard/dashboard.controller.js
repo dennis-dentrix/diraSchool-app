@@ -23,7 +23,8 @@ import LessonPlan    from '../lesson-plans/LessonPlan.model.js';
 import Class         from '../classes/Class.model.js';
 import asyncHandler  from '../../utils/asyncHandler.js';
 import { sendSuccess, sendError, sendForbidden } from '../../utils/response.js';
-import { ADMIN_ROLES, ROLES } from '../../constants/index.js';
+import { ADMIN_ROLES, ROLES, CACHE_TTL } from '../../constants/index.js';
+import { cacheGet, cacheSet } from '../../config/redis.js';
 
 const FINANCE_ROLES = [ROLES.SECRETARY, ROLES.ACCOUNTANT];
 
@@ -38,6 +39,13 @@ export const getDashboard = asyncHandler(async (req, res) => {
   }
 
   const schoolId = req.user.schoolId;
+
+  // Serve from cache if available — prevents simultaneous page renders firing 8+ aggregations each
+  const cacheKey = `dashboard:admin:${schoolId}`;
+  try {
+    const cached = await cacheGet(cacheKey);
+    if (cached) return sendSuccess(res, cached);
+  } catch { /* Redis unavailable — proceed to DB */ }
   const currentYear = String(new Date().getFullYear());
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -205,7 +213,7 @@ export const getDashboard = asyncHandler(async (req, res) => {
     recentPayments,
   };
 
-  return sendSuccess(res, {
+  const payload = {
     school: {
       _id:                school._id,
       name:               school.name,
@@ -226,13 +234,24 @@ export const getDashboard = asyncHandler(async (req, res) => {
       staffAwaitingFirstLogin: pendingUsers,
       trialExpiringSoon: trialDaysLeft !== null && trialDaysLeft <= 7,
     },
-  });
+  };
+
+  try { await cacheSet(cacheKey, payload, CACHE_TTL.DASHBOARD); } catch { /* non-fatal */ }
+
+  return sendSuccess(res, payload);
 });
 
 // ── Finance dashboard (accountant) / Secretary dashboard ─────────────────────
 async function getFinanceDashboard(req, res) {
   const schoolId    = req.user.schoolId;
   const isSecretary = req.user.role === ROLES.SECRETARY;
+
+  const cacheKey = `dashboard:finance:${schoolId}:${req.user.role}`;
+  try {
+    const cached = await cacheGet(cacheKey);
+    if (cached) return sendSuccess(res, cached);
+  } catch { /* Redis unavailable — proceed to DB */ }
+
   const now         = new Date();
   const todayStart  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const weekStart   = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
@@ -460,14 +479,18 @@ async function getFinanceDashboard(req, res) {
     };
   })() : null;
 
-  return sendSuccess(res, {
+  const financePayload = {
     school: { _id: school._id, name: school.name, subscriptionStatus: school.subscriptionStatus },
     fees,
     students:  { total: studentCount, activeCount: studentCount },
     staff:     { total: secretaryData?.staffCount ?? 0, byRole: {} },
     alerts:    { staffAwaitingFirstLogin: 0, trialExpiringSoon: false },
     secretary: secretaryData,
-  });
+  };
+
+  try { await cacheSet(cacheKey, financePayload, CACHE_TTL.DASHBOARD); } catch { /* non-fatal */ }
+
+  return sendSuccess(res, financePayload);
 }
 
 // ── Teacher dashboard ─────────────────────────────────────────────────────────

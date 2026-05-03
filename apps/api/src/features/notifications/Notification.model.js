@@ -48,8 +48,12 @@ const notificationSchema = new mongoose.Schema(
 
 // List query: filter by user, sort by newest
 notificationSchema.index({ schoolId: 1, userId: 1, createdAt: -1 });
-// Unread-count query: filter by user + readAt null — sparse avoids indexing read docs
-notificationSchema.index({ schoolId: 1, userId: 1, readAt: 1 }, { sparse: true });
+// Unread-count query: partial index only on unread docs — sparse would skip null values
+// so we use partialFilterExpression to index only where readAt is null (unread)
+notificationSchema.index(
+  { schoolId: 1, userId: 1 },
+  { partialFilterExpression: { readAt: null }, name: 'unread_count_idx' }
+);
 
 export default mongoose.models.Notification ||
   mongoose.model('Notification', notificationSchema);

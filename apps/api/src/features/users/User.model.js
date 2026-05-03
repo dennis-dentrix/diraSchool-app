@@ -177,6 +177,9 @@ userSchema.index(
     partialFilterExpression: { schoolId: { $exists: false } },
   }
 );
+// Login query: findOne({ email, isActive: true }) — the compound {schoolId,email} index
+// only helps when schoolId is provided. This covers the login path for all school users.
+userSchema.index({ email: 1, isActive: 1 });
 
 // ── Hooks ────────────────────────────────────────────────────────────────────
 

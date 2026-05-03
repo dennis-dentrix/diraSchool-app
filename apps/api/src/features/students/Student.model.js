@@ -118,6 +118,8 @@ const studentSchema = new mongoose.Schema(
 
 // Admission number is unique per school
 studentSchema.index({ schoolId: 1, admissionNumber: 1 }, { unique: true });
+// Dashboard/attendance aggregations: filter by school + active status
+studentSchema.index({ schoolId: 1, status: 1 });
 
 // ── Hooks — keep Class.studentCount in sync ───────────────────────────────────
 
