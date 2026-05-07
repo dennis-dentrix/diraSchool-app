@@ -7,10 +7,11 @@ import { api } from '@/lib/api';
 
 const TourContext = createContext(null);
 
+const NOOP_CONTEXT = { tourCompleted: true, launchTour: () => {}, markCompleted: () => {} };
+
 export function useTourContext() {
   const ctx = useContext(TourContext);
-  if (!ctx) throw new Error('useTourContext must be used inside TourProvider');
-  return ctx;
+  return ctx ?? NOOP_CONTEXT;
 }
 
 export function TourProvider({ children }) {

@@ -70,7 +70,7 @@ export function useTour(role) {
       },
     });
 
-    // Inject step counter + progress bar on every step show
+    // Inject step counter + dots + progress bar on every step show
     tour.on('show', () => {
       requestAnimationFrame(() => {
         const currentStep = tour.getCurrentStep();
@@ -81,30 +81,54 @@ export function useTour(role) {
 
         // Step counter pill in header
         const header = document.querySelector('.shepherd-header');
-        if (header && !header.querySelector('.tour-step-counter')) {
-          const pill = document.createElement('span');
-          pill.className = 'tour-step-counter';
-          pill.textContent = `${stepNum} of ${total}`;
-          header.appendChild(pill);
-        } else if (header) {
-          const pill = header.querySelector('.tour-step-counter');
-          if (pill) pill.textContent = `${stepNum} of ${total}`;
+        if (header) {
+          let pill = header.querySelector('.tour-step-counter');
+          if (!pill) {
+            pill = document.createElement('span');
+            pill.className = 'tour-step-counter';
+            // Insert before the cancel icon if it exists
+            const cancelIcon = header.querySelector('.shepherd-cancel-icon');
+            if (cancelIcon) {
+              header.insertBefore(pill, cancelIcon);
+            } else {
+              header.appendChild(pill);
+            }
+          }
+          pill.textContent = `${stepNum} / ${total}`;
         }
 
-        // Progress bar
-        const existingBar = document.querySelector('.tour-progress-bar-wrapper');
-        if (existingBar) existingBar.remove();
+        // Remove old injected elements
+        document.querySelector('.tour-progress-bar-wrapper')?.remove();
+        document.querySelector('.tour-dots-wrapper')?.remove();
 
         const textEl = document.querySelector('.shepherd-text');
         if (textEl) {
-          const wrapper = document.createElement('div');
-          wrapper.className = 'tour-progress-bar-wrapper';
-          wrapper.innerHTML = `
+          // Dot navigation
+          const dotsWrapper = document.createElement('div');
+          dotsWrapper.className = 'tour-dots-wrapper';
+          for (let i = 0; i < total; i++) {
+            const dot = document.createElement('div');
+            if (i < idx) {
+              dot.className = 'tour-dot done';
+            } else if (i === idx) {
+              dot.className = 'tour-dot active';
+            } else {
+              dot.className = 'tour-dot';
+            }
+            dotsWrapper.appendChild(dot);
+          }
+
+          // Progress bar
+          const barWrapper = document.createElement('div');
+          barWrapper.className = 'tour-progress-bar-wrapper';
+          barWrapper.innerHTML = `
             <div class="tour-progress-bar">
               <div class="tour-progress-bar-fill" style="width:${(stepNum / total) * 100}%"></div>
             </div>
           `;
-          textEl.insertAdjacentElement('afterend', wrapper);
+
+          textEl.insertAdjacentElement('afterend', barWrapper);
+          barWrapper.insertAdjacentElement('afterend', dotsWrapper);
         }
       });
     });

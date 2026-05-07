@@ -26,16 +26,14 @@ const BILLING_ROLES = ['school_admin', 'director', 'headteacher'];
 // ── Pricing constants (must match apps/api/src/features/subscriptions/subscriptions.controller.js)
 const BASE_FEE = 12000;
 const PER_STUDENT = 50;
-const VAT = 0.16;
 const MULTIPLIERS = { 'per-term': 1, annual: 2.70, 'multi-year': 2.55 };
 const fmt = (n) => `KES ${Math.round(n).toLocaleString('en-KE')}`;
 
 function calcBill(students, option = 'per-term') {
   const subtotal = BASE_FEE + students * PER_STUDENT;
   const multiplier = MULTIPLIERS[option] ?? 1;
-  const base = subtotal * multiplier;
-  const vat = Math.round(base * VAT);
-  return { subtotal, base, vat, total: base + vat, multiplier };
+  const total = Math.round(subtotal * multiplier);
+  return { subtotal, total, multiplier };
 }
 
 // ── Status config ────────────────────────────────────────────────────────────
@@ -150,12 +148,9 @@ function BillingCalculator({ currentStudents }) {
           {option !== 'per-term' && (
             <div className="flex justify-between text-muted-foreground text-xs pt-1 border-t">
               <span>× {MULTIPLIERS[option]} ({option === 'annual' ? '3 terms, −10%' : '3 terms, −15%'})</span>
-              <span className="font-mono">{fmt(p.base)}</span>
+              <span className="font-mono">{fmt(p.total)}</span>
             </div>
           )}
-          <div className="flex justify-between text-muted-foreground text-xs pt-1 border-t">
-            <span>VAT (16%)</span><span className="font-mono">{fmt(p.vat)}</span>
-          </div>
           <div className="flex justify-between font-bold text-base pt-2 border-t">
             <span>{option === 'per-term' ? 'Per term total' : option === 'annual' ? 'Annual total' : '3-year total'}</span>
             <span className="font-mono text-primary">{fmt(p.total)}</span>
@@ -458,7 +453,7 @@ export default function BillingPage() {
           {bill ? (
             <>
               <p className="font-mono text-2xl font-semibold tabular-nums leading-none text-primary">{fmt(bill.total)}</p>
-              <p className="text-[11px] text-muted-foreground mt-1">inc. VAT · {studentCount} students</p>
+              <p className="text-[11px] text-muted-foreground mt-1">{studentCount} students</p>
             </>
           ) : (
             <p className="text-sm text-muted-foreground mt-1">Enroll students to see estimate</p>
@@ -603,7 +598,7 @@ export default function BillingPage() {
             <div>
               <p className="text-sm font-semibold">How your bill is calculated</p>
               <p className="text-xs text-muted-foreground mt-0.5 font-mono">
-                ( KES 12,000 base + students × KES 50 ) × cycle multiplier × 1.16 VAT
+                ( KES 12,000 base + students × KES 50 ) × cycle multiplier
               </p>
             </div>
             <div className="sm:ml-auto flex gap-2 shrink-0">
@@ -616,7 +611,7 @@ export default function BillingPage() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-3 pt-3 border-t">
-            If your school is VAT-registered with KRA, you can reclaim the 16% VAT. DiraSchool provides full tax documentation on every invoice.
+            Prices shown are exclusive of any applicable taxes. DiraSchool provides full documentation on every invoice.
           </p>
         </CardContent>
       </Card>
