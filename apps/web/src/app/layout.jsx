@@ -45,7 +45,7 @@ export const metadata = {
     description: DEFAULT_DESCRIPTION,
     images: [
       {
-        url: '/og-image.png',
+        url: '/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'DiraSchool — CBC School Management System for Kenyan Schools',
@@ -58,7 +58,7 @@ export const metadata = {
     creator: '@diraschool',
     title: `${SITE_NAME} — CBC School Management System`,
     description: DEFAULT_DESCRIPTION,
-    images: ['/og-image.png'],
+    images: ['/opengraph-image'],
   },
   robots: {
     index: true,
