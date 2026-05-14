@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   Calendar, Plus, Pencil, Trash2, Save, X,
-  CalendarDays, Users, BookOpen, Clock, AlertTriangle,
+  CalendarDays, Users, BookOpen, Clock, AlertTriangle, Printer,
 } from 'lucide-react';
 import { timetableApi, classesApi, subjectsApi, usersApi, settingsApi, getErrorMessage } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
@@ -922,6 +922,15 @@ function ClassTimetableTab({ canWrite }) {
           <SelectContent>{ACADEMIC_YEARS.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
         </Select>
 
+        {timetable && !editMode && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => window.open(`/timetable/${timetable._id}/print`, '_blank')}
+          >
+            <Printer className="h-3.5 w-3.5 mr-1.5" />Print
+          </Button>
+        )}
         {canWrite && timetable && !editMode && (
           <Button size="sm" variant="outline" onClick={startEdit}>
             <Pencil className="h-3.5 w-3.5 mr-1.5" />Edit Timetable

@@ -7,12 +7,17 @@
  */
 import { Queue } from 'bullmq';
 import { QUEUE_NAMES } from '../constants/index.js';
-import { createBullMQConnection } from '../config/redis.js';
+import { createBullMQConnection, logRedisConnectionError } from '../config/redis.js';
 
 // Shared ioredis instance for all queues.
 // BullMQ will duplicate() it internally for each Queue/Worker connection.
 // Must be a Redis *instance* — passing { url: '...' } as options is silently ignored by ioredis.
 const connection = createBullMQConnection();
+
+// BullMQ Queue objects emit 'error' events when their internal connection resets.
+// Without a listener this becomes an uncaught exception.
+const onQueueError = (name) => (err) =>
+  logRedisConnectionError(`Queue:${name}`, err);
 
 export const smsQueue = new Queue(QUEUE_NAMES.SMS, {
   connection,
@@ -23,6 +28,7 @@ export const smsQueue = new Queue(QUEUE_NAMES.SMS, {
     removeOnFail: { count: 1000 },
   },
 });
+smsQueue.on('error', onQueueError('sms'));
 
 export const reportQueue = new Queue(QUEUE_NAMES.REPORT, {
   connection,
@@ -33,6 +39,7 @@ export const reportQueue = new Queue(QUEUE_NAMES.REPORT, {
     removeOnFail: { count: 500 },
   },
 });
+reportQueue.on('error', onQueueError('report'));
 
 export const importQueue = new Queue(QUEUE_NAMES.IMPORT, {
   connection,
@@ -42,6 +49,7 @@ export const importQueue = new Queue(QUEUE_NAMES.IMPORT, {
     removeOnFail: { count: 200 },
   },
 });
+importQueue.on('error', onQueueError('import'));
 
 export const receiptQueue = new Queue(QUEUE_NAMES.RECEIPT, {
   connection,
@@ -52,6 +60,7 @@ export const receiptQueue = new Queue(QUEUE_NAMES.RECEIPT, {
     removeOnFail: { count: 500 },
   },
 });
+receiptQueue.on('error', onQueueError('receipt'));
 
 export const emailQueue = new Queue(QUEUE_NAMES.EMAIL, {
   connection,
@@ -62,3 +71,4 @@ export const emailQueue = new Queue(QUEUE_NAMES.EMAIL, {
     removeOnFail: { count: 1000 },
   },
 });
+emailQueue.on('error', onQueueError('email'));

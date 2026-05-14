@@ -2,21 +2,65 @@ import { Redis } from 'ioredis';
 import { env } from './env.js';
 
 let redisClient = null;
+let warnedAboutRedisScheme = false;
+const redisErrorState = new Map();
+const REDIS_ERROR_LOG_INTERVAL_MS = 60_000;
+
+const normalizeRedisUrl = () => {
+  if (!env.REDIS_URL) return { url: env.REDIS_URL, useTLS: false };
+
+  try {
+    const url = new URL(env.REDIS_URL);
+    const host = url.hostname.toLowerCase();
+    const isUpstash = host.endsWith('.upstash.io');
+    const useTLS = url.protocol === 'rediss:' || isUpstash;
+
+    if (isUpstash && url.protocol === 'redis:') {
+      url.protocol = 'rediss:';
+      if (!warnedAboutRedisScheme) {
+        console.warn('[Redis] Upstash REDIS_URL uses redis://; using TLS automatically. Update REDIS_URL to rediss:// to match the provider endpoint.');
+        warnedAboutRedisScheme = true;
+      }
+    }
+
+    return { url: url.toString(), useTLS };
+  } catch {
+    return { url: env.REDIS_URL, useTLS: env.REDIS_URL.startsWith('rediss://') };
+  }
+};
+
+export const logRedisConnectionError = (label, err) => {
+  const now = Date.now();
+  const state = redisErrorState.get(label) ?? { lastLoggedAt: 0, suppressed: 0 };
+
+  if (now - state.lastLoggedAt < REDIS_ERROR_LOG_INTERVAL_MS) {
+    redisErrorState.set(label, {
+      ...state,
+      suppressed: state.suppressed + 1,
+    });
+    return;
+  }
+
+  const suppressed = state.suppressed > 0
+    ? ` (${state.suppressed} similar events suppressed)`
+    : '';
+  console.warn(`[${label}] Connection error (will retry): ${err?.message ?? String(err)}${suppressed}`);
+  redisErrorState.set(label, { lastLoggedAt: now, suppressed: 0 });
+};
 
 // ── Shared base options ───────────────────────────────────────────────────────
 // Used by BOTH the main app client and BullMQ connections.
 // Additional per-client options are layered on top below.
 
-const buildBaseOptions = () => {
-  const isTLS = env.REDIS_URL?.startsWith('rediss://');
+const buildBaseOptions = (useTLS) => {
   return {
-    // Upstash closes idle connections after ~10 s — keepAlive prevents the loop
+    // Keep idle TCP connections alive through managed Redis firewalls.
     keepAlive: 5000,
     // Force IPv4. family:0 (dual-stack) causes slow DNS on some Railway regions.
     family: 4,
-    // TLS is required for rediss:// (Upstash always needs this)
-    tls: isTLS ? { rejectUnauthorized: false } : undefined,
-    // Reconnect backoff: 200 ms → 400 ms → … → 2 s cap
+    // TLS is required for rediss:// and Upstash Redis endpoints.
+    tls: useTLS ? { rejectUnauthorized: false } : undefined,
+    // Reconnect backoff: 200 ms -> 400 ms -> ... -> 2 s cap
     retryStrategy(times) {
       return Math.min(times * 200, 2000);
     },
@@ -40,15 +84,16 @@ const buildBaseOptions = () => {
  *   - enableReadyCheck: true      → wait for server READY before sending commands
  */
 export const connectRedis = () => {
-  redisClient = new Redis(env.REDIS_URL, {
-    ...buildBaseOptions(),
+  const redisConfig = normalizeRedisUrl();
+  redisClient = new Redis(redisConfig.url, {
+    ...buildBaseOptions(redisConfig.useTLS),
     commandTimeout: 3_000,  // health-check ping fails fast — no 5-second hangs
   });
 
   redisClient.on('connect',      () => console.log('[Redis] TCP connected'));
   redisClient.on('ready',        () => console.log('[Redis] Ready — auth complete'));
   redisClient.on('reconnecting', (t) => console.warn(`[Redis] Reconnecting in ${t} ms…`));
-  redisClient.on('error',        (err) => console.error(`[Redis] Error: ${err.message}`));
+  redisClient.on('error',        (err) => logRedisConnectionError('Redis', err));
   redisClient.on('close',        () => console.warn('[Redis] Connection closed'));
 
   return redisClient;
@@ -69,12 +114,17 @@ export const connectRedis = () => {
  * BullMQ calls connection.duplicate() internally for each Queue/Worker, so each
  * gets its own isolated connection without sharing blocking-command channels.
  */
-export const createBullMQConnection = () =>
-  new Redis(env.REDIS_URL, {
-    ...buildBaseOptions(),
+export const createBullMQConnection = (label = 'Redis:bullmq') => {
+  const redisConfig = normalizeRedisUrl();
+  const client = new Redis(redisConfig.url, {
+    ...buildBaseOptions(redisConfig.useTLS),
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
   });
+  // BullMQ connections must have an error listener; rate-limit transient noise.
+  client.on('error', (err) => logRedisConnectionError(label, err));
+  return client;
+};
 
 // ── Client accessor ───────────────────────────────────────────────────────────
 export const getRedis = () => {

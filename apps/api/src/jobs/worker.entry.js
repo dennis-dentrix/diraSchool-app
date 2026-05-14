@@ -17,7 +17,7 @@ import { validateEnv } from '../config/env.js';
 import { connectDB } from '../config/db.js';
 import logger from '../config/logger.js';
 import { QUEUE_NAMES, JOB_NAMES } from '../constants/index.js';
-import { createBullMQConnection } from '../config/redis.js';
+import { createBullMQConnection, logRedisConnectionError } from '../config/redis.js';
 import { captureError, initSentry } from '../config/sentry.js';
 import { processSmsJob } from './workers/sms.worker.js';
 import { processReportJob } from './workers/report.worker.js';
@@ -64,6 +64,7 @@ await connectDB();
 // Runs every 15 minutes Mon–Fri. The processor checks which schools' checkout
 // window ended ~60 min ago and fans out reminder emails to staff still checked in.
 const checkoutQueue = new Queue(QUEUE_NAMES.CHECKOUT_REMINDER, { connection });
+checkoutQueue.on('error', (err) => logRedisConnectionError('Queue:checkout-reminder', err));
 await checkoutQueue.upsertJobScheduler(
   'checkout-reminder-scan',
   { pattern: '*/15 * * * 1-5' }, // every 15 min, Mon–Fri (UTC, runs ~18:00-20:00 EAT)

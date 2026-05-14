@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import User from '../features/users/User.model.js';
 import { env } from './env.js';
 import { allowedOrigins } from './cors.js';
-import { createBullMQConnection } from './redis.js';
+import { createBullMQConnection, logRedisConnectionError } from './redis.js';
 import logger from './logger.js';
 
 let io = null;
@@ -25,8 +25,10 @@ export const initSocket = (httpServer) => {
   // Redis pub/sub adapter — required when PM2 runs multiple instances.
   // Without this, a notification emitted on Worker 2 never reaches a user
   // whose socket is connected to Worker 1.
-  const pubClient = createBullMQConnection();
+  const pubClient = createBullMQConnection('Redis:socket-pub');
+  // duplicate() copies options but NOT event listeners — attach handler explicitly
   const subClient = pubClient.duplicate();
+  subClient.on('error', (err) => logRedisConnectionError('Redis:socket-sub', err));
   io.adapter(createAdapter(pubClient, subClient));
 
   // JWT auth via httpOnly cookie (same cookie the REST API uses)
