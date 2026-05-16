@@ -37,16 +37,16 @@ function FAQItem({ q, a }) {
   return (
     <Collapsible.Root open={open} onOpenChange={setOpen}>
       <Collapsible.Trigger className="w-full flex items-center justify-between py-5 text-left group">
-        <span className="font-semibold text-slate-800 pr-8 group-hover:text-blue-600 transition-colors">
+        <span className="font-semibold text-[#0d1f10] pr-8 group-hover:text-[#1f5b5e] transition-colors">
           {q}
         </span>
         <ChevronDown className={cn(
-          'h-4 w-4 text-slate-400 shrink-0 transition-transform duration-200',
+          'h-4 w-4 text-[#7a9080] shrink-0 transition-transform duration-200',
           open && 'rotate-180',
         )} />
       </Collapsible.Trigger>
       <Collapsible.Content className="overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
-        <p className="pb-5 text-slate-500 leading-relaxed text-sm sm:text-base">{a}</p>
+        <p className="pb-5 text-[#4a5e50] leading-relaxed text-sm sm:text-base">{a}</p>
       </Collapsible.Content>
     </Collapsible.Root>
   );
@@ -54,7 +54,7 @@ function FAQItem({ q, a }) {
 
 export default function LandingFAQ() {
   return (
-    <div className="rounded-2xl bg-white border border-slate-200 divide-y divide-slate-100 px-6 sm:px-8">
+    <div className="rounded-2xl bg-white border border-[#ddd8d0] divide-y divide-[#ede9e2] px-6 sm:px-8">
       {FAQS.map((faq) => (
         <FAQItem key={faq.q} {...faq} />
       ))}

@@ -1,7 +1,7 @@
 export const metadata = {
   title: 'Pricing — DiraSchool CBC School Management System',
   description:
-    'Transparent per-term pricing for Kenyan CBC schools. KES 12,000 base fee plus KES 55 per enrolled student per term, plus 16% VAT. No hidden charges. 30-day free trial.',
+    'Per-term pricing for Kenyan CBC schools. KES 12,000 base + KES 55 per student per term. Full CBC features, no hidden fees. Free 30-day trial.',
   openGraph: {
     title: 'DiraSchool Pricing — Fair, Transparent & CBC-Aligned',
     description:

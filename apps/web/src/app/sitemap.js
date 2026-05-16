@@ -15,13 +15,13 @@ export default function sitemap() {
       priority: 0.9,
     },
     {
-      url: `${BASE}/register`,
+      url: `${BASE}/terms`,
       lastModified: new Date(),
       changeFrequency: 'yearly',
-      priority: 0.6,
+      priority: 0.3,
     },
     {
-      url: `${BASE}/login`,
+      url: `${BASE}/privacy`,
       lastModified: new Date(),
       changeFrequency: 'yearly',
       priority: 0.3,

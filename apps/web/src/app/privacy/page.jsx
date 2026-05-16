@@ -40,12 +40,12 @@ export default function PrivacyPage() {
             DiraSchool ("we", "us", "our") is a cloud-based school management platform built for
             Kenyan Competency Based Curriculum (CBC) schools. We are operated by Dentrix Technologies,
             registered in Kenya. Our registered address and data controller contact is{' '}
-            <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-600 hover:underline">{CONTACT_EMAIL}</a>.
+            <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#1f5b5e] hover:underline">{CONTACT_EMAIL}</a>.
           </p>
           <p>
             This Privacy Policy explains how we collect, use, store, and share personal data when you
             use DiraSchool at{' '}
-            <a href="https://diraschool.com" className="text-blue-600 hover:underline">diraschool.com</a>{' '}
+            <a href="https://diraschool.com" className="text-[#1f5b5e] hover:underline">diraschool.com</a>{' '}
             and its associated APIs. It is written in compliance with the{' '}
             <strong>Kenya Data Protection Act, 2019</strong> and its regulations.
           </p>
@@ -197,7 +197,7 @@ export default function PrivacyPage() {
 
         <Section title="8. Cookies">
           <p>
-            DiraSchool uses a single HTTP-only authentication cookie (<code className="text-sm bg-slate-100 px-1 rounded">token</code>)
+            DiraSchool uses a single HTTP-only authentication cookie (<code className="text-sm bg-[#ede9e2] px-1 rounded">token</code>)
             that is strictly necessary for you to stay logged in. We do not use third-party tracking
             cookies or advertising cookies. We do not use Google Analytics or Facebook Pixel.
           </p>
@@ -215,7 +215,7 @@ export default function PrivacyPage() {
           </ul>
           <p>
             To exercise any of these rights, email us at{' '}
-            <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-600 hover:underline">{CONTACT_EMAIL}</a>{' '}
+            <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#1f5b5e] hover:underline">{CONTACT_EMAIL}</a>{' '}
             with the subject line "Data Rights Request". We will respond within 21 days. You also have
             the right to lodge a complaint with the{' '}
             <strong>Office of the Data Protection Commissioner of Kenya (ODPC)</strong>.
@@ -241,7 +241,7 @@ export default function PrivacyPage() {
             by email at least 14 days before material changes take effect. Continued use of DiraSchool
             after the effective date of the revised policy constitutes acceptance. The current version
             is always available at{' '}
-            <a href="https://diraschool.com/privacy" className="text-blue-600 hover:underline">diraschool.com/privacy</a>.
+            <a href="https://diraschool.com/privacy" className="text-[#1f5b5e] hover:underline">diraschool.com/privacy</a>.
           </p>
         </Section>
 
@@ -249,13 +249,13 @@ export default function PrivacyPage() {
           <p>
             For privacy-related questions, data requests, or concerns:
           </p>
-          <div className="mt-3 p-4 bg-slate-50 rounded-lg border border-slate-200 text-sm space-y-1">
+          <div className="mt-3 p-4 bg-[#f7f5f0] rounded-lg border border-[#ddd8d0] text-sm space-y-1">
             <p><strong>DiraSchool — Data Protection Contact</strong></p>
             <p>
               Email:{' '}
-              <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-600 hover:underline">{CONTACT_EMAIL}</a>
+              <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#1f5b5e] hover:underline">{CONTACT_EMAIL}</a>
             </p>
-            <p>Website: <a href="https://diraschool.com" className="text-blue-600 hover:underline">diraschool.com</a></p>
+            <p>Website: <a href="https://diraschool.com" className="text-[#1f5b5e] hover:underline">diraschool.com</a></p>
             <p>Country: Kenya</p>
           </div>
         </Section>

@@ -94,7 +94,7 @@ export default function TermsPage() {
           <p>
             DiraSchool is billed per term (three terms per academic year). Pricing is calculated as:
           </p>
-          <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 text-sm mt-2">
+          <div className="p-4 bg-[#f7f5f0] rounded-lg border border-[#ddd8d0] text-sm mt-2">
             <p className="font-semibold text-slate-800">KES 12,000 base fee per term + KES 55 per enrolled student + 16% VAT</p>
             <p className="mt-1 text-slate-500">
               Annual billing (2 terms paid upfront) receives a 10% discount. Multi-year billing (3 terms paid upfront) receives a 15% discount.
@@ -124,7 +124,7 @@ export default function TermsPage() {
             and are consumed in the order purchased. Unused credits carry over to subsequent terms but
             expire 12 months after purchase.
           </p>
-          <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 text-sm mt-2">
+          <div className="p-4 bg-[#f7f5f0] rounded-lg border border-[#ddd8d0] text-sm mt-2">
             <p className="font-semibold text-slate-800 mb-2">Available credit packs</p>
             <table className="w-full text-slate-600">
               <tbody>
@@ -204,7 +204,7 @@ export default function TermsPage() {
           </p>
           <p>
             We provide best-effort support via email at{' '}
-            <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-600 hover:underline">{CONTACT_EMAIL}</a>.
+            <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#1f5b5e] hover:underline">{CONTACT_EMAIL}</a>.
             Support is available Monday–Friday, 8 am – 6 pm East Africa Time.
           </p>
         </Section>
@@ -239,7 +239,7 @@ export default function TermsPage() {
           <p>
             You may cancel your subscription at any time from the Billing section of your dashboard or
             by emailing{' '}
-            <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-600 hover:underline">{CONTACT_EMAIL}</a>.
+            <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#1f5b5e] hover:underline">{CONTACT_EMAIL}</a>.
             Cancellation takes effect at the end of the current billing term. No partial refunds are
             issued for early cancellation.
           </p>
@@ -258,7 +258,7 @@ export default function TermsPage() {
           </p>
           <p>
             The current version of these Terms is always available at{' '}
-            <a href="https://diraschool.com/terms" className="text-blue-600 hover:underline">diraschool.com/terms</a>.
+            <a href="https://diraschool.com/terms" className="text-[#1f5b5e] hover:underline">diraschool.com/terms</a>.
           </p>
         </Section>
 
@@ -277,9 +277,9 @@ export default function TermsPage() {
             <p><strong>DiraSchool</strong></p>
             <p>
               Email:{' '}
-              <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-600 hover:underline">{CONTACT_EMAIL}</a>
+              <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#1f5b5e] hover:underline">{CONTACT_EMAIL}</a>
             </p>
-            <p>Website: <a href="https://diraschool.com" className="text-blue-600 hover:underline">diraschool.com</a></p>
+            <p>Website: <a href="https://diraschool.com" className="text-[#1f5b5e] hover:underline">diraschool.com</a></p>
             <p>Country: Kenya</p>
           </div>
         </Section>

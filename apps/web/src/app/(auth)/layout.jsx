@@ -1,6 +1,15 @@
 import { Suspense } from 'react';
 import { BrandLogo } from '@/components/shared/brand-logo';
 
+export const metadata = {
+  title: {
+    default: 'Sign In — DiraSchool',
+    template: '%s — DiraSchool',
+  },
+  description: 'Sign in to DiraSchool to manage your CBC school — attendance, fees, report cards, and parent communication.',
+  robots: { index: false, follow: false },
+};
+
 const FEATURES = [
   'CBC-aligned assessment & report cards',
   'M-Pesa fee collection & reconciliation',
