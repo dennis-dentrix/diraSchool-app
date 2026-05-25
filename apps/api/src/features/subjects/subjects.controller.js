@@ -5,16 +5,9 @@ import asyncHandler from '../../utils/asyncHandler.js';
 import { sendSuccess, sendError } from '../../utils/response.js';
 import { paginate } from '../../utils/pagination.js';
 import { LEVEL_CATEGORIES, ROLES, CACHE_TTL } from '../../constants/index.js';
-import { getRedis } from '../../config/redis.js';
+import { bustCachePattern } from '../../utils/cache.js';
 
-const bustSubjectCache = async (schoolId) => {
-  const redis = getRedis();
-  if (!redis) return;
-  try {
-    const keys = await redis.keys(`school:subjects:${schoolId}:*`);
-    if (keys.length) await redis.del(...keys);
-  } catch { /* non-fatal */ }
-};
+const bustSubjectCache = (schoolId) => bustCachePattern(`school:subjects:${schoolId}:*`);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

@@ -1,7 +1,8 @@
 import crypto from 'node:crypto';
-import { URL } from 'node:url';
+import { generateToken, hashToken } from '../../utils/tokens.js';
+import { withTransaction } from '../../utils/withTransaction.js';
+import { getCookieDomain } from '../../utils/cookies.js';
 import jwt from 'jsonwebtoken';
-import mongoose from 'mongoose';
 import School from '../schools/School.model.js';
 import User from '../users/User.model.js';
 import asyncHandler from '../../utils/asyncHandler.js';
@@ -19,20 +20,6 @@ import { logAction } from '../../utils/auditLogger.js';
 
 const signToken = (userId) =>
   jwt.sign({ id: userId }, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });
-
-// Derive the shared cookie domain from CLIENT_URL so the cookie is visible to
-// both www.diraschool.com (Next.js) and api.diraschool.com (this API).
-// Example: CLIENT_URL = 'https://www.diraschool.com' → domain = '.diraschool.com'
-const getCookieDomain = () => {
-  if (!env.isProduction || !env.CLIENT_URL) return undefined;
-  try {
-    const hostname = new URL(env.CLIENT_URL).hostname; // 'www.diraschool.com'
-    const parts = hostname.split('.');
-    return parts.length >= 2 ? `.${parts.slice(-2).join('.')}` : undefined; // '.diraschool.com'
-  } catch {
-    return undefined;
-  }
-};
 
 const attachCookie = (res, token) => {
   const oneDay = 24 * 60 * 60 * 1000;
@@ -101,15 +88,11 @@ export const registerSchool = asyncHandler(async (req, res) => {
 
   // Generate OTP (manual entry) + token (fallback link), both valid for 30 minutes
   const otp = String(crypto.randomInt(100_000, 1_000_000)); // e.g. "482917"
-  const rawToken = crypto.randomBytes(32).toString('hex');
-  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const { raw: rawToken, hash: tokenHash } = generateToken();
   const expiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
 
-  // Use a session for atomicity — both School and User must be created or neither
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
+  // Both School and User must be created atomically
+  const { school, user } = await withTransaction(async (session) => {
     const [school] = await School.create(
       [
         {
@@ -144,57 +127,47 @@ export const registerSchool = asyncHandler(async (req, res) => {
       { session }
     );
 
-    await session.commitTransaction();
+    return { school, user };
+  });
 
-    // Queue verification email asynchronously; send directly only if Redis/queueing fails.
-    const verifyUrl = `${env.CLIENT_URL}/verify-email/${rawToken}`;
-    const verificationPayload = {
+  // Queue verification email asynchronously; send directly only if Redis/queueing fails.
+  const verifyUrl = `${env.CLIENT_URL}/verify-email/${rawToken}`;
+  queueEmailWithDirectFallback(
+    JOB_NAMES.SEND_VERIFICATION_EMAIL,
+    {
       to: user.email,
       firstName: user.firstName,
       schoolName: school.name,
       code: otp,
       verifyUrl,
       expiresInMinutes: 30,
-      meta: {
-        schoolId: school._id,
-        userId: user._id,
-        flow: 'register',
-      },
-    };
-    queueEmailWithDirectFallback(
-      JOB_NAMES.SEND_VERIFICATION_EMAIL,
-      verificationPayload,
-      'Auth verification'
-    );
+      meta: { schoolId: school._id, userId: user._id, flow: 'register' },
+    },
+    'Auth verification'
+  );
 
-    // Notify the DiraSchool admin of the new registration (fire-and-forget)
-    sendNewSchoolNotification({
-      schoolName: school.name,
-      schoolEmail: user.email,
-      schoolPhone: school.phone,
-      county: school.county,
-      adminName: `${user.firstName} ${user.lastName}`,
-      meta: { schoolId: school._id, userId: user._id },
-    }).catch((err) =>
-      logger.error('[Auth] Admin new-school notification failed:', err.message)
-    );
+  // Notify the DiraSchool admin of the new registration (fire-and-forget)
+  sendNewSchoolNotification({
+    schoolName: school.name,
+    schoolEmail: user.email,
+    schoolPhone: school.phone,
+    county: school.county,
+    adminName: `${user.firstName} ${user.lastName}`,
+    meta: { schoolId: school._id, userId: user._id },
+  }).catch((err) =>
+    logger.error('[Auth] Admin new-school notification failed:', err.message)
+  );
 
-    // Do NOT set a cookie — user must verify email before logging in
-    return sendSuccess(
-      res,
-      {
-        message: `Account created! Please check ${user.email} for a verification link to activate your account.`,
-        email: user.email, // surface so the frontend can show "check your inbox at ..."
-        school: { _id: school._id, name: school.name },
-      },
-      201
-    );
-  } catch (err) {
-    if (session.inTransaction()) await session.abortTransaction();
-    throw err;
-  } finally {
-    await session.endSession();
-  }
+  // Do NOT set a cookie — user must verify email before logging in
+  return sendSuccess(
+    res,
+    {
+      message: `Account created! Please check ${user.email} for a verification link to activate your account.`,
+      email: user.email,
+      school: { _id: school._id, name: school.name },
+    },
+    201
+  );
 });
 
 /**
@@ -304,11 +277,8 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     });
   }
 
-  // Generate a cryptographically secure random token
-  const rawToken = crypto.randomBytes(32).toString('hex');
-
-  // Store only the hash — raw token is sent to the user
-  user.passwordResetToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const { raw: rawToken, hash } = generateToken();
+  user.passwordResetToken = hash;
   user.passwordResetExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
   await user.save({ validateBeforeSave: false });
 
@@ -342,7 +312,7 @@ export const resetPassword = asyncHandler(async (req, res) => {
   const { password } = req.body;
 
   // Hash the incoming token to compare against the stored hash
-  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  const hashedToken = hashToken(token);
 
   const user = await User.findOne({
     passwordResetToken: hashedToken,
@@ -389,7 +359,7 @@ export const acceptInvite = asyncHandler(async (req, res) => {
   const { token } = req.params;
   const { password } = req.body;
 
-  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  const hashedToken = hashToken(token);
 
   const user = await User.findOne({
     inviteToken: hashedToken,
@@ -512,7 +482,7 @@ export const verifyEmail = asyncHandler(async (req, res) => {
  */
 export const verifyEmailByToken = asyncHandler(async (req, res) => {
   const { token } = req.params;
-  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  const hashedToken = hashToken(token);
 
   const user = await User.findOne({
     emailVerificationToken: hashedToken,
@@ -568,9 +538,9 @@ export const resendVerification = asyncHandler(async (req, res) => {
 
   // Issue a fresh OTP + fallback link token (30-minute expiry)
   const otp = String(crypto.randomInt(100_000, 1_000_000));
-  const rawToken = crypto.randomBytes(32).toString('hex');
+  const { raw: rawToken, hash: verifyHash } = generateToken();
   user.emailVerificationCode = otp;
-  user.emailVerificationToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+  user.emailVerificationToken = verifyHash;
   user.emailVerificationExpiry = new Date(Date.now() + 30 * 60 * 1000);
   await user.save({ validateBeforeSave: false });
 

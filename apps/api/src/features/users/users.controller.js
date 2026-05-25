@@ -1,4 +1,5 @@
-import crypto from 'node:crypto';
+import { generateToken, randomPassword } from '../../utils/tokens.js';
+import { searchRegex } from '../../utils/search.js';
 import User from './User.model.js';
 import School from '../schools/School.model.js';
 import asyncHandler from '../../utils/asyncHandler.js';
@@ -57,19 +58,16 @@ export const createUser = asyncHandler(async (req, res) => {
   const school = await School.findById(req.user.schoolId).select('name').lean();
   const schoolName = school?.name ?? 'your school';
 
-  // Generate invite token upfront — embed in User.create to avoid an extra save round-trip
-  const rawToken  = crypto.randomBytes(32).toString('hex');
-  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-  const expiry    = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  const { raw: rawToken, hash: tokenHash } = generateToken();
+  const expiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
   const user = await User.create({
     firstName:         firstName.trim(),
     lastName:          lastName.trim(),
     email:             email.toLowerCase().trim(),
     phone:             phone ? normalisePhone(phone) : undefined,
-    // Random placeholder — the pre-save hash hook runs on it, but it is
-    // never used: acceptInvite overwrites it when the user sets their password.
-    password:          crypto.randomBytes(16).toString('hex'),
+    // Random placeholder — never used: acceptInvite overwrites it when the user sets their password.
+    password:          randomPassword(),
     role,
     staffId:           staffId   ?? undefined,
     tscNumber:         tscNumber ?? undefined,
@@ -149,7 +147,7 @@ export const listUsers = asyncHandler(async (req, res) => {
   if (req.query.isActive !== undefined) filter.isActive = req.query.isActive !== 'false';
   if (req.query.invitePending !== undefined) filter.invitePending = req.query.invitePending !== 'false';
   if (req.query.search) {
-    const r = new RegExp(req.query.search.trim(), 'i');
+    const r = searchRegex(req.query.search);
     filter.$or = [{ firstName: r }, { lastName: r }, { email: r }, { staffId: r }];
   }
 
@@ -298,9 +296,8 @@ export const resendInvite = asyncHandler(async (req, res) => {
   const school = await School.findById(req.user.schoolId).select('name').lean();
   const schoolName = school?.name ?? 'your school';
 
-  // Rotate the token so the old link is immediately invalidated
-  const rawToken  = crypto.randomBytes(32).toString('hex');
-  user.inviteToken       = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const { raw: rawToken, hash: inviteHash } = generateToken();
+  user.inviteToken       = inviteHash;
   user.inviteTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   user.invitePending     = true;
   await user.save({ validateBeforeSave: false });
@@ -346,8 +343,8 @@ export const adminResetPassword = asyncHandler(async (req, res) => {
   const restrictionError = assertTargetManageable(req, user);
   if (restrictionError) return sendError(res, restrictionError, 403);
 
-  const rawToken  = crypto.randomBytes(32).toString('hex');
-  user.passwordResetToken  = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const { raw: rawToken, hash: resetHash } = generateToken();
+  user.passwordResetToken  = resetHash;
   user.passwordResetExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
   await user.save({ validateBeforeSave: false });
 

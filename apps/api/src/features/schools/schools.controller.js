@@ -1,5 +1,6 @@
-import crypto from 'node:crypto';
-import mongoose from 'mongoose';
+import { generateToken, randomPassword } from '../../utils/tokens.js';
+import { withTransaction } from '../../utils/withTransaction.js';
+import { searchRegex } from '../../utils/search.js';
 import School from './School.model.js';
 import User from '../users/User.model.js';
 import Student from '../students/Student.model.js';
@@ -183,39 +184,23 @@ export const createSchool = asyncHandler(async (req, res) => {
   const existingUser = await User.findOne({ email: adminEmail });
   if (existingUser) return sendError(res, 'A user with this admin email already exists.', 409);
 
-  const rawToken = crypto.randomBytes(32).toString('hex');
-  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const { raw: rawToken, hash: tokenHash } = generateToken();
   const expiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  let school;
-  let admin;
-  try {
-    [school] = await School.create(
-      [
-        {
-          name,
-          email,
-          phone: normalisePhone(phone),
-          county,
-          constituency,
-          registrationNumber,
-          address,
-        },
-      ],
+  const { school, admin } = await withTransaction(async (session) => {
+    const [school] = await School.create(
+      [{ name, email, phone: normalisePhone(phone), county, constituency, registrationNumber, address }],
       { session }
     );
 
-    [admin] = await User.create(
+    const [admin] = await User.create(
       [
         {
           firstName: adminFirstName.trim(),
           lastName: adminLastName.trim(),
           email: adminEmail.toLowerCase().trim(),
           phone: adminPhone ? normalisePhone(adminPhone) : undefined,
-          password: crypto.randomBytes(16).toString('hex'),
+          password: randomPassword(),
           role: ROLES.SCHOOL_ADMIN,
           schoolId: school._id,
           mustChangePassword: false,
@@ -228,13 +213,8 @@ export const createSchool = asyncHandler(async (req, res) => {
       { session }
     );
 
-    await session.commitTransaction();
-  } catch (err) {
-    if (session.inTransaction()) await session.abortTransaction();
-    throw err;
-  } finally {
-    await session.endSession();
-  }
+    return { school, admin };
+  });
 
   const inviteUrl = `${env.CLIENT_URL}/accept-invite/${rawToken}`;
   queueEmailWithDirectFallback(
@@ -279,8 +259,7 @@ export const listSchools = asyncHandler(async (req, res) => {
   }
 
   if (req.query.search) {
-    const escaped = req.query.search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(escaped, 'i');
+    const regex = searchRegex(req.query.search);
     filter.$or = [{ name: regex }, { email: regex }, { registrationNumber: regex }];
   }
 

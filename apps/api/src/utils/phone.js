@@ -12,7 +12,7 @@ export const normalisePhone = (phone) => {
   if (digits.startsWith('0') && digits.length === 10) {
     return `+254${digits.slice(1)}`;
   }
-  if (digits.length === 9 && digits.startsWith('7')) {
+  if ((digits.length === 9 && digits.startsWith('7')) || digits.startsWith('1')) {
     return `+254${digits}`;
   }
 

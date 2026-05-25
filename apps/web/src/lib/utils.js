@@ -67,6 +67,14 @@ export function getStatusColor(status) {
   return map[status] ?? 'bg-gray-100 text-gray-800';
 }
 
+/** Design-token badge classes for student status — use with a bordered Badge variant. */
+export const studentStatusStyle = {
+  active:      'text-ok border-ok/30 bg-ok/8',
+  withdrawn:   'text-muted-foreground border-border bg-muted/40',
+  transferred: 'text-warn border-warn/30 bg-warn/8',
+  graduated:   'text-primary border-primary/20 bg-primary/8',
+};
+
 /** Returns the bar/text color classes for a fee-collection percentage. */
 export function feeColor(pct) {
   if (pct >= 80) return { bar: 'bg-emerald-500', text: 'text-emerald-700' };

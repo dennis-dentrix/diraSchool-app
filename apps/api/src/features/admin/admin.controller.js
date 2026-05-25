@@ -68,6 +68,7 @@ import { emitToUser } from '../../config/socket.js';
 import { JOB_NAMES } from '../../constants/index.js';
 import { logAction } from '../../utils/auditLogger.js';
 import { getCurrentTermAndYear } from '../../utils/term.js';
+import { searchRegex } from '../../utils/search.js';
 import {
   DEFAULT_BASE_FEE,
   DEFAULT_CORPORATE_TAX_RATE,
@@ -660,7 +661,7 @@ export const listAdminUsers = asyncHandler(async (req, res) => {
   }
 
   if (search) {
-    const r = new RegExp(search.trim(), 'i');
+    const r = searchRegex(search);
     filter.$or = [{ firstName: r }, { lastName: r }, { email: r }];
   }
 

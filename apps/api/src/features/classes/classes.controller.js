@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { withTransaction } from '../../utils/withTransaction.js';
 import Class from './Class.model.js';
 import Student from '../students/Student.model.js';
 import ReportCard from '../report-cards/ReportCard.model.js';
@@ -8,6 +9,7 @@ import asyncHandler from '../../utils/asyncHandler.js';
 import { sendSuccess, sendError } from '../../utils/response.js';
 import { paginate } from '../../utils/pagination.js';
 import { getRedis } from '../../config/redis.js';
+import { bustCachePattern } from '../../utils/cache.js';
 import { CACHE_TTL, STUDENT_STATUSES, PAYMENT_STATUSES } from '../../constants/index.js';
 import { createNotification } from '../../services/notification.service.js';
 import { sendAttendancePermissionEmail } from '../../services/email.service.js';
@@ -48,15 +50,7 @@ const notifyClassTeacher = async (schoolId, teacherId, cls) => {
   }
 };
 
-// Invalidate ALL class-list cache entries for a school (on any create/update/delete)
-const bustClassCache = async (schoolId) => {
-  const redis = getRedis();
-  if (!redis) return;
-  try {
-    const keys = await redis.keys(`school:classes:${schoolId}:*`);
-    if (keys.length) await redis.del(...keys);
-  } catch { /* non-fatal */ }
-};
+const bustClassCache = (schoolId) => bustCachePattern(`school:classes:${schoolId}:*`);
 
 /**
  * POST /api/v1/classes
@@ -324,10 +318,7 @@ export const promoteClass = asyncHandler(async (req, res) => {
 
   const promotionCycle = `${source.academicYear}:${source.term}`;
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
+  const { movedCount, skippedCount, notEligibleCount } = await withTransaction(async (session) => {
     const baseFilter = {
       classId: sourceClassId,
       schoolId: req.user.schoolId,
@@ -370,75 +361,39 @@ export const promoteClass = asyncHandler(async (req, res) => {
 
       const promotableIds = candidateIds.filter((id) => isPromotable(cardMap.get(String(id))));
       notEligibleCount = Math.max(0, candidateIds.length - promotableIds.length);
-
-      promotionFilter = {
-        _id: { $in: promotableIds },
-        schoolId: req.user.schoolId,
-      };
+      promotionFilter = { _id: { $in: promotableIds }, schoolId: req.user.schoolId };
     }
 
     const updates =
       action === 'graduate'
-        ? {
-          $set: {
-            status: STUDENT_STATUSES.GRADUATED,
-            lastPromotionCycle: promotionCycle,
-            lastPromotedAt: new Date(),
-          },
-        }
-        : {
-          $set: {
-            classId: targetClassId,
-            lastPromotionCycle: promotionCycle,
-            lastPromotedAt: new Date(),
-          },
-        };
+        ? { $set: { status: STUDENT_STATUSES.GRADUATED, lastPromotionCycle: promotionCycle, lastPromotedAt: new Date() } }
+        : { $set: { classId: targetClassId, lastPromotionCycle: promotionCycle, lastPromotedAt: new Date() } };
 
-    // Move (or graduate) active students who have not already been processed in this cycle.
-    const result = await Student.updateMany(
-      promotionFilter,
-      updates,
-      { session }
-    );
-
+    const result = await Student.updateMany(promotionFilter, updates, { session });
     const movedCount = result.modifiedCount;
-    const skippedCount = Math.max(0, eligibleCount - movedCount);
 
-    // Sync class counts.
-    await Class.updateOne(
-      { _id: sourceClassId },
-      { $inc: { studentCount: -movedCount } },
-      { session }
-    );
+    await Class.updateOne({ _id: sourceClassId }, { $inc: { studentCount: -movedCount } }, { session });
     if (action === 'promote') {
-      await Class.updateOne(
-        { _id: targetClassId },
-        { $inc: { studentCount: movedCount } },
-        { session }
-      );
+      await Class.updateOne({ _id: targetClassId }, { $inc: { studentCount: movedCount } }, { session });
     }
 
-    await session.commitTransaction();
-    await bustClassCache(req.user.schoolId);
+    return { movedCount, skippedCount: Math.max(0, eligibleCount - movedCount), notEligibleCount };
+  });
 
-    const actionLabel = action === 'graduate' ? 'graduated' : 'promoted';
-    const targetName = action === 'graduate' ? 'Graduation list' : target.name;
+  await bustClassCache(req.user.schoolId);
 
-    return sendSuccess(res, {
-      message: `${movedCount} student(s) ${actionLabel} from ${source.name} to ${targetName}.`,
-      movedCount,
-      skippedCount,
-      notEligibleCount,
-      eligibilityMode,
-      action,
-      promotionCycle,
-      sourceClass: { _id: source._id, name: source.name },
-      targetClass: action === 'promote' ? { _id: target._id, name: target.name } : null,
-    });
-  } catch (err) {
-    if (session.inTransaction()) await session.abortTransaction();
-    throw err;
-  } finally {
-    session.endSession();
-  }
+  const actionLabel = action === 'graduate' ? 'graduated' : 'promoted';
+  const targetName = action === 'graduate' ? 'Graduation list' : target.name;
+
+  return sendSuccess(res, {
+    message: `${movedCount} student(s) ${actionLabel} from ${source.name} to ${targetName}.`,
+    movedCount,
+    skippedCount,
+    notEligibleCount,
+    eligibilityMode,
+    action,
+    promotionCycle,
+    sourceClass: { _id: source._id, name: source.name },
+    targetClass: action === 'promote' ? { _id: target._id, name: target.name } : null,
+  });
 });

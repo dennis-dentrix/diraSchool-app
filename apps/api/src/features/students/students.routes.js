@@ -2,7 +2,7 @@ import express from 'express';
 import { protect, blockIfMustChangePassword, adminOnly, authorize } from '../../middleware/auth.js';
 import requireFeature from '../../middleware/requireFeature.js';
 import { uploadCsv, uploadImage } from '../../middleware/upload.js';
-import { ROLES, PLAN_FEATURES } from '../../constants/index.js';
+import { ROLES, ROLE_GROUPS, PLAN_FEATURES } from '../../constants/index.js';
 import {
   validateEnrollStudent,
   validateUpdateStudent,
@@ -24,11 +24,7 @@ const router = express.Router();
 
 router.use(protect, blockIfMustChangePassword);
 
-// Read access: all school staff (secretary, accountant, and teachers need to view students)
-const canRead = authorize(
-  ROLES.SCHOOL_ADMIN, ROLES.DIRECTOR, ROLES.HEADTEACHER,
-  ROLES.DEPUTY_HEADTEACHER, ROLES.SECRETARY, ROLES.ACCOUNTANT, ROLES.TEACHER, ROLES.DEPARTMENT_HEAD
-);
+const canRead = authorize(...ROLE_GROUPS.ALL_STAFF);
 
 router.get('/', canRead, listStudents);
 router.get('/import/:jobId/status', canRead, getImportStatus);

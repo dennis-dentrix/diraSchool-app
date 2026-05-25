@@ -6,6 +6,7 @@ import { sendSuccess, sendError } from '../../utils/response.js';
 import { paginate } from '../../utils/pagination.js';
 import { LOAN_STATUSES, AUDIT_ACTIONS, AUDIT_RESOURCES } from '../../constants/index.js';
 import { logAction } from '../../utils/auditLogger.js';
+import { searchRegex } from '../../utils/search.js';
 
 // ── Books ──────────────────────────────────────────────────────────────────────
 
@@ -52,7 +53,7 @@ export const listBooks = asyncHandler(async (req, res) => {
   if (req.query.category) filter.category = req.query.category;
   if (req.query.isActive !== undefined) filter.isActive = req.query.isActive === 'true';
   if (req.query.search) {
-    const re = new RegExp(req.query.search, 'i');
+    const re = searchRegex(req.query.search);
     filter.$or = [{ title: re }, { author: re }, { isbn: re }];
   }
 

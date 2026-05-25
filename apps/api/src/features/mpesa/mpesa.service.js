@@ -32,8 +32,6 @@ export const parseTransTime = (transTime) => {
   );
 };
 
-const escapeRegExp = (value) =>
-  String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const requireDarajaConfig = () => {
   const missing = [
@@ -315,7 +313,7 @@ export const processConfirmationPayload = async (payload) => {
     ? await Student.findOne({
         schoolId: school._id,
         status: STUDENT_STATUSES.ACTIVE,
-        admissionNumber: { $regex: new RegExp(`^${escapeRegExp(accountRef)}$`, 'i') },
+        admissionNumber: { $regex: new RegExp(`^${String(accountRef).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
       }).select('_id classId firstName lastName admissionNumber').lean()
     : null;
 

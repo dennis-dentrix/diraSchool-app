@@ -1,4 +1,5 @@
-import crypto from 'node:crypto';
+import { generateToken, randomPassword } from '../../utils/tokens.js';
+import { searchRegex } from '../../utils/search.js';
 import mongoose from 'mongoose';
 import Student from './Student.model.js';
 import Class from '../classes/Class.model.js';
@@ -15,6 +16,51 @@ import { logAction } from '../../utils/auditLogger.js';
 import { env } from '../../config/env.js';
 import { queueEmailWithDirectFallback } from '../../utils/emailJobs.js';
 import { uploadBuffer } from '../../jobs/helpers/spacesUpload.js';
+
+// ── Private helpers ───────────────────────────────────────────────────────────
+
+const createParentWithInvite = async ({ firstName, lastName, email, phone, schoolId, session }) => {
+  const { raw: rawToken, hash: tokenHash } = generateToken();
+  const expiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const [parent] = await User.create(
+    [
+      {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email,
+        phone,
+        password: randomPassword(),
+        role: ROLES.PARENT,
+        schoolId,
+        mustChangePassword: false,
+        invitePending: true,
+        inviteToken: tokenHash,
+        inviteTokenExpiry: expiry,
+        emailVerified: true,
+      },
+    ],
+    { session }
+  );
+  return { parent, inviteUrl: `${env.CLIENT_URL}/accept-invite/${rawToken}` };
+};
+
+const buildInvitePayload = ({ parent, schoolName, childName, inviteUrl, flow, schoolId }) => ({
+  to: parent.email,
+  firstName: parent.firstName,
+  schoolName,
+  childName,
+  inviteUrl,
+  meta: { schoolId, userId: parent._id, flow },
+});
+
+const buildNoticePayload = ({ parent, schoolName, childName, flow, schoolId }) => ({
+  to: parent.email,
+  firstName: parent.firstName,
+  schoolName,
+  childName,
+  isAdditionalChild: Array.isArray(parent.children) && parent.children.length > 0,
+  meta: { schoolId, userId: parent._id, flow },
+});
 
 /**
  * POST /api/v1/students
@@ -98,49 +144,24 @@ export const enrollStudent = asyncHandler(async (req, res) => {
         }).session(session);
 
         if (!parentUser) {
-          const rawToken = crypto.randomBytes(32).toString('hex');
-          const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-          const expiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-
-          const [newParent] = await User.create(
-            [
-              {
-                firstName: guardian.firstName.trim(),
-                lastName: guardian.lastName.trim(),
-                email,
-                phone: guardian.phone ? normalisePhone(guardian.phone) : undefined,
-                password: crypto.randomBytes(16).toString('hex'), // placeholder
-                role: ROLES.PARENT,
-                schoolId: req.user.schoolId,
-                mustChangePassword: false,
-                invitePending: true,
-                inviteToken: tokenHash,
-                inviteTokenExpiry: expiry,
-                emailVerified: true,
-              },
-            ],
-            { session }
-          );
-
+          const { parent: newParent, inviteUrl } = await createParentWithInvite({
+            firstName: guardian.firstName,
+            lastName: guardian.lastName,
+            email,
+            phone: guardian.phone ? normalisePhone(guardian.phone) : undefined,
+            schoolId: req.user.schoolId,
+            session,
+          });
           parentUser = newParent;
-          const inviteUrl = `${env.CLIENT_URL}/accept-invite/${rawToken}`;
-          pendingInvites.set(parentUser.email, {
-            to: parentUser.email,
-            firstName: parentUser.firstName,
-            schoolName,
-            childName: studentFullName,
-            inviteUrl,
-            meta: { schoolId: req.user.schoolId, userId: parentUser._id, flow: 'parent-invite' },
-          });
+          pendingInvites.set(parentUser.email, buildInvitePayload({
+            parent: parentUser, schoolName, childName: studentFullName,
+            inviteUrl, flow: 'parent-invite', schoolId: req.user.schoolId,
+          }));
         } else {
-          pendingEnrollmentNotices.set(parentUser.email, {
-            to: parentUser.email,
-            firstName: parentUser.firstName,
-            schoolName,
-            childName: studentFullName,
-            isAdditionalChild: Array.isArray(parentUser.children) && parentUser.children.length > 0,
-            meta: { schoolId: req.user.schoolId, userId: parentUser._id, flow: 'parent-existing-child-linked' },
-          });
+          pendingEnrollmentNotices.set(parentUser.email, buildNoticePayload({
+            parent: parentUser, schoolName, childName: studentFullName,
+            flow: 'parent-existing-child-linked', schoolId: req.user.schoolId,
+          }));
         }
 
         guardianEntry.userId = parentUser._id;
@@ -178,52 +199,50 @@ export const enrollStudent = asyncHandler(async (req, res) => {
         }
 
         if (!parentUser) {
-          const rawToken = crypto.randomBytes(32).toString('hex');
-          const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-          const expiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-          const [newParent] = await User.create(
-            [
-              {
-                firstName: parent.firstName.trim(),
-                lastName: parent.lastName.trim(),
-                email: email || `parent${phone.replace('+', '')}@placeholder.diraschool`,
-                phone,
-                password: crypto.randomBytes(16).toString('hex'),
-                role: ROLES.PARENT,
-                schoolId: req.user.schoolId,
-                mustChangePassword: false,
-                invitePending: !!email, // only pending if we can invite them
-                inviteToken: email ? tokenHash : undefined,
-                inviteTokenExpiry: email ? expiry : undefined,
-                emailVerified: true,
-              },
-            ],
-            { session }
-          );
-
-          parentUser = newParent;
-
           if (email) {
-            const inviteUrl = `${env.CLIENT_URL}/accept-invite/${rawToken}`;
-            pendingInvites.set(parentUser.email, {
-              to: parentUser.email,
-              firstName: parentUser.firstName,
-              schoolName,
-              childName: studentFullName,
-              inviteUrl,
-              meta: { schoolId: req.user.schoolId, userId: parentUser._id, flow: 'parent-invite' },
+            const { parent: newParent, inviteUrl } = await createParentWithInvite({
+              firstName: parent.firstName,
+              lastName: parent.lastName,
+              email,
+              phone,
+              schoolId: req.user.schoolId,
+              session,
             });
+            parentUser = newParent;
+            pendingInvites.set(parentUser.email, buildInvitePayload({
+              parent: parentUser, schoolName, childName: studentFullName,
+              inviteUrl, flow: 'parent-invite', schoolId: req.user.schoolId,
+            }));
+          } else {
+            // No email — create a placeholder account (phone-only parent)
+            const { raw: rawToken, hash: tokenHash } = generateToken();
+            const expiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            const [newParent] = await User.create(
+              [
+                {
+                  firstName: parent.firstName.trim(),
+                  lastName: parent.lastName.trim(),
+                  email: `parent${phone.replace('+', '')}@placeholder.diraschool`,
+                  phone,
+                  password: randomPassword(),
+                  role: ROLES.PARENT,
+                  schoolId: req.user.schoolId,
+                  mustChangePassword: false,
+                  invitePending: false,
+                  inviteToken: rawToken ? tokenHash : undefined,
+                  inviteTokenExpiry: expiry,
+                  emailVerified: true,
+                },
+              ],
+              { session }
+            );
+            parentUser = newParent;
           }
         } else {
-          pendingEnrollmentNotices.set(parentUser.email, {
-            to: parentUser.email,
-            firstName: parentUser.firstName,
-            schoolName,
-            childName: studentFullName,
-            isAdditionalChild: Array.isArray(parentUser.children) && parentUser.children.length > 0,
-            meta: { schoolId: req.user.schoolId, userId: parentUser._id, flow: 'parent-existing-child-linked' },
-          });
+          pendingEnrollmentNotices.set(parentUser.email, buildNoticePayload({
+            parent: parentUser, schoolName, childName: studentFullName,
+            flow: 'parent-existing-child-linked', schoolId: req.user.schoolId,
+          }));
         }
 
         parentIds.add(parentUser._id.toString());
@@ -310,7 +329,7 @@ export const listStudents = asyncHandler(async (req, res) => {
   if (req.query.gender && ['male', 'female'].includes(req.query.gender)) filter.gender = req.query.gender;
 
   if (req.query.search) {
-    const rx = new RegExp(req.query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const rx = searchRegex(req.query.search);
     filter.$or = [
       { firstName: rx },
       { lastName: rx },
@@ -410,49 +429,26 @@ export const updateStudent = asyncHandler(async (req, res) => {
             let parentUser = await User.findOne({ schoolId, role: ROLES.PARENT, email }).session(session);
 
             if (!parentUser) {
-              const rawToken = crypto.randomBytes(32).toString('hex');
-              const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-              const expiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-              const [newParent] = await User.create(
-                [
-                  {
-                    firstName: g.firstName.trim(),
-                    lastName: g.lastName.trim(),
-                    email,
-                    phone,
-                    password: crypto.randomBytes(16).toString('hex'),
-                    role: ROLES.PARENT,
-                    schoolId,
-                    mustChangePassword: false,
-                    invitePending: true,
-                    inviteToken: tokenHash,
-                    inviteTokenExpiry: expiry,
-                    emailVerified: true,
-                  },
-                ],
-                { session }
-              );
-
+              const childName = `${student.firstName} ${student.lastName}`;
+              const { parent: newParent, inviteUrl } = await createParentWithInvite({
+                firstName: g.firstName,
+                lastName: g.lastName,
+                email,
+                phone,
+                schoolId,
+                session,
+              });
               parentUser = newParent;
-              const inviteUrl = `${env.CLIENT_URL}/accept-invite/${rawToken}`;
-              pendingInvites.set(parentUser.email, {
-                to: parentUser.email,
-                firstName: parentUser.firstName,
-                schoolName,
-                childName: `${student.firstName} ${student.lastName}`,
-                inviteUrl,
-                meta: { schoolId, userId: parentUser._id, flow: 'parent-invite-update' },
-              });
+              pendingInvites.set(parentUser.email, buildInvitePayload({
+                parent: parentUser, schoolName, childName,
+                inviteUrl, flow: 'parent-invite-update', schoolId,
+              }));
             } else if (!parentUser.children?.some((id) => id.toString() === student._id.toString())) {
-              pendingEnrollmentNotices.set(parentUser.email, {
-                to: parentUser.email,
-                firstName: parentUser.firstName,
-                schoolName,
+              pendingEnrollmentNotices.set(parentUser.email, buildNoticePayload({
+                parent: parentUser, schoolName,
                 childName: `${student.firstName} ${student.lastName}`,
-                isAdditionalChild: Array.isArray(parentUser.children) && parentUser.children.length > 0,
-                meta: { schoolId, userId: parentUser._id, flow: 'parent-existing-child-linked-update' },
-              });
+                flow: 'parent-existing-child-linked-update', schoolId,
+              }));
             }
 
             linkedUserId = parentUser._id.toString();

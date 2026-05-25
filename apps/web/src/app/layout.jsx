@@ -78,17 +78,49 @@ export const metadata = {
 
 };
 
-const organizationSchema = {
+const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'Organization',
-  name: SITE_NAME,
-  url: SITE_URL,
-  logo: {
-    '@type': 'ImageObject',
-    url: `${SITE_URL}/icon`,
-    width: 512,
-    height: 512,
-  },
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': `${SITE_URL}/#org`,
+      name: SITE_NAME,
+      url: SITE_URL,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${SITE_URL}/icon`,
+        width: 512,
+        height: 512,
+      },
+      description: 'CBC school management system for Kenyan schools.',
+      address: { '@type': 'PostalAddress', addressCountry: 'KE' },
+    },
+    {
+      '@type': 'SoftwareApplication',
+      '@id': `${SITE_URL}/#app`,
+      name: SITE_NAME,
+      applicationCategory: 'EducationalApplication',
+      operatingSystem: 'Web',
+      url: SITE_URL,
+      publisher: { '@id': `${SITE_URL}/#org` },
+      description: DEFAULT_DESCRIPTION,
+      offers: {
+        '@type': 'Offer',
+        price: '12000',
+        priceCurrency: 'KES',
+        description: 'KES 12,000 base fee per term plus KES 55 per enrolled student, plus 16% VAT',
+      },
+      featureList: [
+        'CBC Report Card Generation',
+        'Digital Attendance Tracking',
+        'Fee Management',
+        'Parent Portal',
+        'Staff Management',
+        'Timetable Management',
+        'Transport Management',
+      ],
+    },
+  ],
 };
 
 export default function RootLayout({ children }) {
@@ -98,7 +130,7 @@ export default function RootLayout({ children }) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(organizationSchema),
+            __html: JSON.stringify(jsonLd),
           }}
         />
         <Providers>{children}</Providers>

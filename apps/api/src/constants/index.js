@@ -26,6 +26,18 @@ export {
 // All roles scoped to a specific school (not superadmin)
 export const SCHOOL_ROLES = Object.values(ROLES).filter((r) => r !== ROLES.SUPERADMIN);
 
+// Pre-built role groups — use with authorize(...ROLE_GROUPS.ALL_STAFF) etc.
+export const ROLE_GROUPS = {
+  // school_admin, director, headteacher, deputy_headteacher
+  ADMIN: ADMIN_ROLES,
+  // admin + teacher + department_head (no secretary/accountant)
+  ACADEMIC: [...ADMIN_ROLES, ROLES.TEACHER, ROLES.DEPARTMENT_HEAD],
+  // admin + secretary + accountant (no teaching roles)
+  FINANCE: [...ADMIN_ROLES, ROLES.SECRETARY, ROLES.ACCOUNTANT],
+  // all 8 school staff roles
+  ALL_STAFF: [...ADMIN_ROLES, ROLES.TEACHER, ROLES.DEPARTMENT_HEAD, ROLES.SECRETARY, ROLES.ACCOUNTANT],
+};
+
 export const YEARS = () => {
   const current = new Date().getFullYear();
   return [current - 1, current, current + 1].map(String);

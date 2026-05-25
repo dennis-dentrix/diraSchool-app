@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect, blockIfMustChangePassword, adminOnly, authorize } from '../../middleware/auth.js';
-import { ROLES } from '../../constants/index.js';
+import { ROLES, ROLE_GROUPS } from '../../constants/index.js';
 import {
   validateCreateSubject,
   validateUpdateSubject,
@@ -30,11 +30,7 @@ const router = express.Router();
 
 router.use(protect, blockIfMustChangePassword);
 
-// Teachers can view their own subjects
-const canRead = authorize(
-  ROLES.SCHOOL_ADMIN, ROLES.DIRECTOR, ROLES.HEADTEACHER,
-  ROLES.DEPUTY_HEADTEACHER, ROLES.SECRETARY, ROLES.TEACHER, ROLES.DEPARTMENT_HEAD
-);
+const canRead = authorize(...ROLE_GROUPS.ACADEMIC, ROLES.SECRETARY);
 
 // ── Departments — must be before /:id to avoid param shadowing ───────────────
 router.get('/departments',                          canRead,   listDepartments);

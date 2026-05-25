@@ -2,10 +2,11 @@ import jwt from 'jsonwebtoken';
 import User from '../features/users/User.model.js';
 import School from '../features/schools/School.model.js';
 import { env } from '../config/env.js';
-import { SUBSCRIPTION_STATUSES, CACHE_TTL } from '../constants/index.js';
+import { SUBSCRIPTION_STATUSES, CACHE_TTL, ADMIN_ROLES } from '../constants/index.js';
 import { sendUnauthorized, sendForbidden } from '../utils/response.js';
 import { getRedis } from '../config/redis.js';
 import { attachAutoAudit } from '../utils/auditLogger.js';
+import { getCookieDomain } from '../utils/cookies.js';
 
 // ── Per-school rate limit ─────────────────────────────────────────────────────
 // Limits each school tenant to SCHOOL_RATE_LIMIT requests per 60-second window.
@@ -62,19 +63,12 @@ export const protect = async (req, res, next) => {
   // Active users are never logged out; idle users expire after 24 h.
   if (decoded.exp && decoded.exp - Math.floor(Date.now() / 1000) < 6 * 60 * 60) {
     const newToken = jwt.sign({ id: decoded.id }, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });
-    let domain;
-    if (env.isProduction && env.CLIENT_URL) {
-      try {
-        const parts = new URL(env.CLIENT_URL).hostname.split('.');
-        if (parts.length >= 2) domain = `.${parts.slice(-2).join('.')}`;
-      } catch { /* ignore */ }
-    }
     res.cookie('token', newToken, {
       httpOnly: true,
       secure: env.isProduction,
       sameSite: env.isProduction ? 'strict' : 'lax',
       maxAge: 24 * 60 * 60 * 1000,
-      domain,
+      domain: getCookieDomain(),
     });
   }
 
@@ -207,8 +201,7 @@ export const authorize =
  * adminOnly — shorthand for all 4 admin roles.
  */
 export const adminOnly = (req, res, next) => {
-  const adminRoles = ['school_admin', 'director', 'headteacher', 'deputy_headteacher'];
-  if (!adminRoles.includes(req.user?.role)) {
+  if (!ADMIN_ROLES.includes(req.user?.role)) {
     return sendForbidden(res, 'Admin access required.');
   }
   next();

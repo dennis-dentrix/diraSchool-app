@@ -16,6 +16,7 @@ import { useAuthStore, isAdmin } from '@/store/auth.store';
 import { LEVEL_CATEGORIES, ACADEMIC_YEARS, TERMS } from '@/lib/constants';
 import { formatDate } from '@/lib/utils';
 import { useSchoolTermDefaults } from '@/hooks/use-school-term-defaults';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,7 +50,6 @@ const editSchema = z.object({
   classTeacherId: z.string().optional(),
 });
 
-const CONFIRM_INIT = { open: false, title: '', description: '', onConfirm: null };
 const PROMOTE_INIT = { open: false, sourceClass: null, targetClassId: '', action: 'promote' };
 
 // ── Enrollment bar ─────────────────────────────────────────────────────────────
@@ -101,7 +101,7 @@ export default function ClassesPage() {
 
   const [open, setOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
-  const [confirmDialog, setConfirmDialog] = useState(CONFIRM_INIT);
+  const { dialog: confirmDialog, openConfirm, closeConfirm } = useConfirmDialog();
   const [promoteDialog, setPromoteDialog] = useState(PROMOTE_INIT);
   const [filterYear, setFilterYear] = useState(defaultAcademicYear);
   const [editingClass, setEditingClass] = useState(null);
@@ -219,8 +219,8 @@ export default function ClassesPage() {
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
-  const openConfirm = (title, description, onConfirm) =>
-    setConfirmDialog({ open: true, title, description, onConfirm });
+  const confirm = (title, description, onConfirm) =>
+    openConfirm({ title, description, onConfirm });
 
   const openEdit = (cls, e) => {
     e?.stopPropagation();
@@ -352,7 +352,7 @@ export default function ClassesPage() {
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
                                     className="text-destructive"
-                                    onClick={(e) => { e.stopPropagation(); openConfirm('Delete class?', 'This will permanently remove the class and cannot be undone.', () => deleteClass(cls._id)); }}
+                                    onClick={(e) => { e.stopPropagation(); confirm('Delete class?', 'This will permanently remove the class and cannot be undone.', () => deleteClass(cls._id)); }}
                                   >
                                     Delete class
                                   </DropdownMenuItem>
@@ -725,7 +725,7 @@ export default function ClassesPage() {
       </Dialog>
 
       {/* ── Confirm dialog ────────────────────────────────────────────────── */}
-      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && setConfirmDialog(CONFIRM_INIT)}>
+      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && closeConfirm()}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{confirmDialog.title}</AlertDialogTitle>
@@ -735,7 +735,7 @@ export default function ClassesPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => { confirmDialog.onConfirm?.(); setConfirmDialog(CONFIRM_INIT); }}
+              onClick={() => { confirmDialog.onConfirm?.(); closeConfirm(); }}
             >
               Confirm
             </AlertDialogAction>

@@ -13,7 +13,7 @@ import {
   validateListTimetables,
   validateUpdateSlots,
 } from './timetable.validator.js';
-import { ROLES, PLAN_FEATURES } from '../../constants/index.js';
+import { ROLES, ROLE_GROUPS, PLAN_FEATURES } from '../../constants/index.js';
 
 const router = Router();
 
@@ -21,12 +21,7 @@ const router = Router();
 // Feature gate: requires active subscription (see requireFeature middleware).
 router.use(protect, blockIfMustChangePassword, requireFeature(PLAN_FEATURES.TIMETABLE));
 
-// Read access: all school staff who can see Timetable in the sidebar.
-const canRead = authorize(
-  ROLES.SCHOOL_ADMIN, ROLES.DIRECTOR, ROLES.HEADTEACHER,
-  ROLES.DEPUTY_HEADTEACHER, ROLES.TEACHER, ROLES.DEPARTMENT_HEAD,
-  ROLES.SECRETARY, ROLES.ACCOUNTANT
-);
+const canRead = authorize(...ROLE_GROUPS.ALL_STAFF);
 
 router.get('/',   canRead, validateListTimetables, listTimetables);
 router.get('/:id', canRead, getTimetable);

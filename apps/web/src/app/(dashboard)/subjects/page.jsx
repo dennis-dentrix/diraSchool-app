@@ -26,6 +26,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 
 const SUBJECT_TIERS = [
   { value: 'core',     label: 'Core' },
@@ -47,7 +48,6 @@ const deptSchema = z.object({
   hodId:       z.string().optional(),
 });
 
-const CONFIRM_INIT = { open: false, title: '', description: '', onConfirm: null };
 
 // ── Tier pill ─────────────────────────────────────────────────────────────────
 function TierPill({ tier }) {
@@ -344,7 +344,7 @@ export default function SubjectsPage() {
   const [selectedTeacherIds, setSelectedTeacherIds] = useState([]);
   const [selectedHodId, setSelectedHodId]         = useState('');
   const [page, setPage]                           = useState(1);
-  const [confirmDialog, setConfirmDialog]         = useState(CONFIRM_INIT);
+  const { dialog: confirmDialog, openConfirm, closeConfirm } = useConfirmDialog();
   const [deptFilter, setDeptFilter]               = useState('');
 
   // Teacher state
@@ -522,8 +522,8 @@ export default function SubjectsPage() {
     setSelectedHodId(typeof subj.hodId === 'object' ? (subj.hodId?._id ?? '') : (subj.hodId ?? ''));
   };
 
-  const openConfirm = (title, description, onConfirm) =>
-    setConfirmDialog({ open: true, title, description, onConfirm });
+  const confirm = (title, description, onConfirm) =>
+    openConfirm({ title, description, onConfirm });
 
   // ── Teacher view ──────────────────────────────────────────────────────────
   if (isTeacher) {
@@ -721,7 +721,7 @@ export default function SubjectsPage() {
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem className="text-destructive"
-                                  onClick={() => openConfirm('Delete subject?', 'This action cannot be undone.', () => deleteSubject(s._id))}>
+                                  onClick={() => confirm('Delete subject?', 'This action cannot be undone.', () => deleteSubject(s._id))}>
                                   Delete
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
@@ -963,7 +963,7 @@ export default function SubjectsPage() {
       </AlertDialog>
 
       {/* ── Generic confirm dialog ─────────────────────────────────────────── */}
-      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && setConfirmDialog(CONFIRM_INIT)}>
+      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && closeConfirm()}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{confirmDialog.title}</AlertDialogTitle>
@@ -973,7 +973,7 @@ export default function SubjectsPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => { confirmDialog.onConfirm?.(); setConfirmDialog(CONFIRM_INIT); }}
+              onClick={() => { confirmDialog.onConfirm?.(); closeConfirm(); }}
             >
               Confirm
             </AlertDialogAction>

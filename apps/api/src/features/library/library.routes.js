@@ -9,7 +9,7 @@ import {
   validateCreateBook, validateUpdateBook, validateListBooks,
   validateIssueLoan, validateReturnBook, validateListLoans,
 } from './library.validator.js';
-import { ROLES, PLAN_FEATURES } from '../../constants/index.js';
+import { ROLES, ROLE_GROUPS, PLAN_FEATURES } from '../../constants/index.js';
 
 const router = Router();
 
@@ -17,11 +17,7 @@ const router = Router();
 // Feature gate: requires active subscription (see requireFeature middleware).
 router.use(protect, blockIfMustChangePassword, requireFeature(PLAN_FEATURES.LIBRARY));
 
-// Book catalogue — read access to all school staff
-const canRead = authorize(
-  ROLES.SCHOOL_ADMIN, ROLES.DIRECTOR, ROLES.HEADTEACHER,
-  ROLES.DEPUTY_HEADTEACHER, ROLES.TEACHER, ROLES.DEPARTMENT_HEAD, ROLES.SECRETARY, ROLES.ACCOUNTANT
-);
+const canRead = authorize(...ROLE_GROUPS.ALL_STAFF);
 
 router.get('/books',      canRead, validateListBooks, listBooks);
 router.get('/books/:id',  canRead, getBook);
@@ -30,11 +26,8 @@ router.get('/books/:id',  canRead, getBook);
 router.post('/books',        adminOnly, validateCreateBook, createBook);
 router.patch('/books/:id',   adminOnly, validateUpdateBook, updateBook);
 
-// Loans — admins + teachers + secretary
-const canLoan = authorize(
-  ROLES.SCHOOL_ADMIN, ROLES.DIRECTOR, ROLES.HEADTEACHER,
-  ROLES.DEPUTY_HEADTEACHER, ROLES.TEACHER, ROLES.DEPARTMENT_HEAD, ROLES.SECRETARY
-);
+// Loans — admins + teachers + secretary (accountant excluded)
+const canLoan = authorize(...ROLE_GROUPS.ACADEMIC, ROLES.SECRETARY);
 
 router.post('/loans',                    canLoan, validateIssueLoan, issueLoan);
 router.get('/loans',                     canRead, validateListLoans, listLoans);

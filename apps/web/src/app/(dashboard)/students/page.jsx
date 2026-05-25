@@ -9,7 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { studentsApi, classesApi, feesApi, exportApi, downloadBlob, getErrorMessage } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
-import { formatDate, capitalize } from '@/lib/utils';
+import { formatDate, capitalize, studentStatusStyle } from '@/lib/utils';
 import { STUDENT_STATUSES } from '@/lib/constants';
 import { PageHeader } from '@/components/shared/page-header';
 import { RefreshButton } from '@/components/shared/refresh-button';
@@ -22,6 +22,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -51,15 +52,7 @@ const schema = z.object({
 });
 
 const RELATIONSHIPS = ['mother', 'father', 'guardian', 'other'];
-const CONFIRM_INIT  = { open: false, title: '', description: '', onConfirm: null };
 
-// Token-based status styles (replaces getStatusColor hardcoded classes)
-const STATUS_STYLE = {
-  active:      'text-ok border-ok/30 bg-ok/8',
-  withdrawn:   'text-muted-foreground border-border bg-muted/40',
-  transferred: 'text-warn border-warn/30 bg-warn/8',
-  graduated:   'text-primary border-primary/20 bg-primary/8',
-};
 
 // ── Summary Cards ─────────────────────────────────────────────────────────────
 
@@ -148,7 +141,7 @@ export default function StudentsPage() {
   const [classFilter, setClassFilter]       = useState('');
   const [genderFilter, setGenderFilter]     = useState('');
   const [showGuardian, setShowGuardian]   = useState(false);
-  const [confirmDialog, setConfirmDialog] = useState(CONFIRM_INIT);
+  const { dialog: confirmDialog, openConfirm, closeConfirm } = useConfirmDialog();
   const debouncedSearch = useDebounce(search, 400);
 
   const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm({
@@ -308,8 +301,8 @@ export default function StudentsPage() {
     queryClient.invalidateQueries({ queryKey: ['students-status-counts'] });
   }, [importJobId, importStatus, queryClient]);
 
-  const openConfirm = (title, description, onConfirm) =>
-    setConfirmDialog({ open: true, title, description, onConfirm });
+  const confirm = (title, description, onConfirm) =>
+    openConfirm({ title, description, onConfirm });
 
   const pagination = data?.meta ?? data?.pagination;
   const totalCount = pagination?.total ?? students.length;
@@ -520,7 +513,7 @@ export default function StudentsPage() {
                       )}
                       <td className="py-3 px-3 text-center">
                         <span className={cn('inline-flex items-center h-5 px-2 rounded-full text-[10px] font-medium border capitalize',
-                          STATUS_STYLE[s.status] ?? 'text-muted-foreground border-border')}>
+                          studentStatusStyle[s.status] ?? 'text-muted-foreground border-border')}>
                           {s.status}
                         </span>
                       </td>
@@ -535,7 +528,7 @@ export default function StudentsPage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => router.push(`/students/${s._id}`)}>View details</DropdownMenuItem>
                               {s.status === 'active' && (
-                                <DropdownMenuItem className="text-destructive" onClick={() => openConfirm(
+                                <DropdownMenuItem className="text-destructive" onClick={() => confirm(
                                   `Withdraw ${s.firstName} ${s.lastName}?`,
                                   'The student will be marked as withdrawn. This can be reversed later.',
                                   () => withdrawStudent({ id: s._id }),
@@ -770,7 +763,7 @@ export default function StudentsPage() {
       )}
 
       {/* ── Confirm dialog ─────────────────────────────────────────────────── */}
-      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && setConfirmDialog(CONFIRM_INIT)}>
+      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && closeConfirm()}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{confirmDialog.title}</AlertDialogTitle>
@@ -782,7 +775,7 @@ export default function StudentsPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => { confirmDialog.onConfirm?.(); setConfirmDialog(CONFIRM_INIT); }}
+              onClick={() => { confirmDialog.onConfirm?.(); closeConfirm(); }}
             >
               Confirm
             </AlertDialogAction>

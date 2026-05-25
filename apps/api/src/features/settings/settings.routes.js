@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { protect, blockIfMustChangePassword, authorize } from '../../middleware/auth.js';
 import { ROLES } from '../../constants/index.js';
+
+// Deputy headteacher excluded from settings — they operate, they don't configure
+const seniorAdmin = authorize(ROLES.SCHOOL_ADMIN, ROLES.DIRECTOR, ROLES.HEADTEACHER);
 import { uploadImage } from '../../middleware/upload.js';
 import {
   getSettings,
@@ -21,45 +24,11 @@ const router = Router();
 router.use(protect, blockIfMustChangePassword);
 
 router.get('/',  getSettings);
-router.put(
-  '/',
-  authorize(ROLES.SCHOOL_ADMIN, ROLES.DIRECTOR, ROLES.HEADTEACHER),
-  validateUpdateSettings,
-  updateSettings
-);
-router.post(
-  '/logo',
-  authorize(ROLES.SCHOOL_ADMIN, ROLES.DIRECTOR, ROLES.HEADTEACHER),
-  uploadImage('logo'),
-  uploadSchoolLogo
-);
-
-router.post(
-  '/holidays',
-  authorize(ROLES.SCHOOL_ADMIN, ROLES.DIRECTOR, ROLES.HEADTEACHER),
-  validateAddHoliday,
-  addHoliday
-);
-router.delete(
-  '/holidays/:holidayId',
-  authorize(ROLES.SCHOOL_ADMIN, ROLES.DIRECTOR, ROLES.HEADTEACHER),
-  deleteHoliday
-);
-
-// Geofence configuration — school admin only
-router.put(
-  '/geofence',
-  authorize(ROLES.SCHOOL_ADMIN, ROLES.DIRECTOR, ROLES.HEADTEACHER),
-  validateGeofence,
-  updateGeofence
-);
-
-// Check-in / check-out deadline times
-router.put(
-  '/checkin-times',
-  authorize(ROLES.SCHOOL_ADMIN, ROLES.DIRECTOR, ROLES.HEADTEACHER),
-  validateCheckInTimes,
-  updateCheckInTimes
-);
+router.put('/', seniorAdmin, validateUpdateSettings, updateSettings);
+router.post('/logo', seniorAdmin, uploadImage('logo'), uploadSchoolLogo);
+router.post('/holidays', seniorAdmin, validateAddHoliday, addHoliday);
+router.delete('/holidays/:holidayId', seniorAdmin, deleteHoliday);
+router.put('/geofence', seniorAdmin, validateGeofence, updateGeofence);
+router.put('/checkin-times', seniorAdmin, validateCheckInTimes, updateCheckInTimes);
 
 export default router;
