@@ -16,6 +16,7 @@ import { logAction } from '../../utils/auditLogger.js';
 import { env } from '../../config/env.js';
 import { queueEmailWithDirectFallback } from '../../utils/emailJobs.js';
 import { uploadBuffer } from '../../jobs/helpers/spacesUpload.js';
+import { parseImportFile } from '../../utils/parseImportFile.js';
 
 // ── Private helpers ───────────────────────────────────────────────────────────
 
@@ -621,96 +622,127 @@ export const uploadStudentPhoto = asyncHandler(async (req, res) => {
   return sendSuccess(res, { photo: student.photo, studentId: student._id });
 });
 
-// ── CSV Bulk Import ───────────────────────────────────────────────────────────
+// ── Bulk Import ───────────────────────────────────────────────────────────────
 
 /**
  * POST /api/v1/students/import
- * Accepts a multipart CSV file upload (field: "file") + classId body param.
- * Parses the CSV, validates each row, then enqueues a BullMQ import job.
- * Returns { jobId } immediately — client polls /import/:jobId/status for results.
  *
- * CSV format (header row required):
- *   admissionNumber,firstName,lastName,gender[,dateOfBirth,parentFirstName,parentLastName,parentPhone,parentEmail]
+ * Accepts a CSV, XLSX, XLS, or ODS file (field: "file").
+ *
+ * Two modes:
+ *
+ * 1. Single-class  — classId provided in body (required for CSV / single-sheet Excel).
+ *    Returns { jobId, total, preValidationErrors }.
+ *
+ * 2. All-classes   — no classId, multi-sheet Excel only.
+ *    Each worksheet name must match a class name in the school.
+ *    Returns { jobs: [{ sheetName, classId, jobId, total, preValidationErrors }] }.
+ *
+ * In both cases the client polls GET /import/:jobId/status for each jobId.
  */
 export const importStudents = asyncHandler(async (req, res) => {
   const { classId } = req.body;
-  if (!classId) return sendError(res, 'classId is required in the form body.', 400);
+  const { buffer, originalname, mimetype } = req.file;
 
-  // Verify the class belongs to this school
-  const cls = await Class.findOne({ _id: classId, schoolId: req.user.schoolId });
-  if (!cls) return sendError(res, 'Class not found.', 404);
-
-  // Parse CSV from memory buffer
-  const csvText = req.file.buffer.toString('utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  const lines = csvText.split('\n').filter((l) => l.trim().length > 0);
-
-  if (lines.length < 2) {
-    return sendError(res, 'CSV must have a header row and at least one data row.', 400);
+  let parsed;
+  try {
+    parsed = parseImportFile(buffer, originalname, mimetype);
+  } catch (e) {
+    return sendError(res, e.message, 400);
   }
 
-  // Parse header (lowercase, trim)
-  const headers = lines[0].split(',').map((h) => h.trim().toLowerCase().replace(/[^a-z]/g, ''));
+  // ── Single-class mode ──────────────────────────────────────────────────────
+  if (parsed.mode === 'single' || classId) {
+    if (!classId) {
+      return sendError(res, 'classId is required for single-class imports.', 400);
+    }
 
-  const requiredHeaders = ['admissionnumber', 'firstname', 'lastname', 'gender'];
-  const missing = requiredHeaders.filter((h) => !headers.includes(h));
-  if (missing.length > 0) {
-    return sendError(res, `CSV missing required columns: ${missing.join(', ')}.`, 400);
+    const cls = await Class.findOne({ _id: classId, schoolId: req.user.schoolId });
+    if (!cls) return sendError(res, 'Class not found.', 404);
+
+    // For multi-sheet Excel with an explicit classId, use the first sheet
+    const rows = parsed.mode === 'multi' ? parsed.sheets[0]?.rows ?? [] : parsed.rows;
+    const parseErrors = parsed.mode === 'multi' ? parsed.sheets[0]?.parseErrors ?? [] : parsed.parseErrors;
+
+    if (rows.length === 0) {
+      return sendError(res, `No valid rows found. Parse errors: ${parseErrors.length}`, 400);
+    }
+
+    const job = await importQueue.add(JOB_NAMES.IMPORT_STUDENTS_CSV, {
+      jobId: null,
+      schoolId: req.user.schoolId.toString(),
+      requestedByUserId: req.user._id.toString(),
+      classId,
+      rows,
+    });
+    await job.updateData({ ...job.data, jobId: job.id });
+
+    return sendSuccess(res, {
+      message: `Import queued. ${rows.length} rows to process, ${parseErrors.length} pre-validation errors.`,
+      jobId: job.id,
+      total: rows.length,
+      preValidationErrors: parseErrors,
+    }, 202);
   }
 
-  const rows = [];
-  const parseErrors = [];
+  // ── All-classes mode (multi-sheet Excel, no classId) ──────────────────────
+  if (parsed.sheets.length === 0) {
+    return sendError(res, 'No worksheets found in the Excel file.', 400);
+  }
 
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map((v) => v.trim().replace(/^"|"$/g, ''));
-    const row = {};
-    headers.forEach((h, idx) => { row[h] = values[idx] ?? ''; });
+  // Load all classes for this school once
+  const allClasses = await Class.find({ schoolId: req.user.schoolId }).lean();
+  const classByName = new Map(
+    allClasses.map((c) => [c.name.toLowerCase().trim(), c])
+  );
+  // Also index by "name stream" combined
+  for (const c of allClasses) {
+    if (c.stream) {
+      classByName.set(`${c.name} ${c.stream}`.toLowerCase().trim(), c);
+    }
+  }
 
-    // Validate required fields
-    if (!row.admissionnumber || !row.firstname || !row.lastname || !row.gender) {
-      parseErrors.push({ row: i + 1, error: 'Missing required field' });
+  const enqueuedJobs = [];
+  const unmatchedSheets = [];
+
+  for (const sheet of parsed.sheets) {
+    const nameLower = sheet.sheetName.toLowerCase().trim();
+    const cls = classByName.get(nameLower);
+
+    if (!cls) {
+      unmatchedSheets.push(sheet.sheetName);
       continue;
     }
 
-    const gender = row.gender.toLowerCase();
-    if (gender !== 'male' && gender !== 'female') {
-      parseErrors.push({ row: i + 1, error: `Invalid gender "${row.gender}" — must be male or female` });
-      continue;
-    }
+    if (sheet.rows.length === 0) continue;
 
-    rows.push({
-      admissionNumber: row.admissionnumber,
-      firstName:       row.firstname,
-      lastName:        row.lastname,
-      gender,
-      dateOfBirth:     row.dateofbirth || undefined,
-      parentFirstName: row.parentfirstname || undefined,
-      parentLastName:  row.parentlastname || undefined,
-      parentPhone:     row.parentphone || undefined,
-      parentEmail:     row.parentemail || undefined,
+    const job = await importQueue.add(JOB_NAMES.IMPORT_STUDENTS_CSV, {
+      jobId: null,
+      schoolId: req.user.schoolId.toString(),
+      requestedByUserId: req.user._id.toString(),
+      classId: cls._id.toString(),
+      rows: sheet.rows,
+    });
+    await job.updateData({ ...job.data, jobId: job.id });
+
+    enqueuedJobs.push({
+      sheetName: sheet.sheetName,
+      classId: cls._id.toString(),
+      className: cls.stream ? `${cls.name} ${cls.stream}` : cls.name,
+      jobId: job.id,
+      total: sheet.rows.length,
+      preValidationErrors: sheet.parseErrors,
     });
   }
 
-  if (rows.length === 0) {
-    return sendError(res, `No valid rows found. Parse errors: ${parseErrors.length}`, 400);
+  if (enqueuedJobs.length === 0) {
+    return sendError(res, `No matching classes found. Unmatched sheets: ${unmatchedSheets.join(', ')}. Make sure each sheet name exactly matches a class name.`, 400);
   }
 
-  // Enqueue the import job
-  const job = await importQueue.add(JOB_NAMES.IMPORT_STUDENTS_CSV, {
-    jobId: null,  // will be replaced below after we know job.id
-    schoolId: req.user.schoolId.toString(),
-    requestedByUserId: req.user._id.toString(),
-    classId,
-    rows,
-  });
-
-  // Store the BullMQ job.id as jobId in the payload (for status polling key)
-  await job.updateData({ ...job.data, jobId: job.id });
-
   return sendSuccess(res, {
-    message: `Import job queued. ${rows.length} rows to process, ${parseErrors.length} pre-validation errors.`,
-    jobId: job.id,
-    total: rows.length,
-    preValidationErrors: parseErrors,
+    message: `${enqueuedJobs.length} class import job(s) queued.`,
+    jobs: enqueuedJobs,
+    unmatchedSheets,
   }, 202);
 });
 

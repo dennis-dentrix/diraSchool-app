@@ -133,10 +133,12 @@ export default function StudentsPage() {
   const [search, setSearch]               = useState('');
   const [page, setPage]                   = useState(1);
   const [open, setOpen]                   = useState(false);
-  const [importOpen, setImportOpen]       = useState(false);
-  const [importClassId, setImportClassId] = useState('');
-  const [importFile, setImportFile]       = useState(null);
-  const [importJobId, setImportJobId]     = useState(null);
+  const [importOpen, setImportOpen]         = useState(false);
+  const [importMode, setImportMode]         = useState('single'); // 'single' | 'all'
+  const [importClassId, setImportClassId]   = useState('');
+  const [importFile, setImportFile]         = useState(null);
+  const [importJobId, setImportJobId]       = useState(null);
+  const [importJobIds, setImportJobIds]     = useState([]); // for all-classes mode
   const [selectedStatus, setSelectedStatus] = useState('active');
   const [classFilter, setClassFilter]       = useState('');
   const [genderFilter, setGenderFilter]     = useState('');
@@ -255,28 +257,45 @@ export default function StudentsPage() {
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
+  const resetImportDialog = () => {
+    setImportFile(null);
+    setImportClassId('');
+    setImportMode('single');
+  };
+
   const { mutate: startImport, isPending: importSubmitting } = useMutation({
     mutationFn: async () => {
-      if (!importClassId) throw new Error('Select a class for this import.');
-      if (!importFile)    throw new Error('Select a CSV file to import.');
+      if (!importFile) throw new Error('Select a file to import.');
+      if (importMode === 'single' && !importClassId) throw new Error('Select a class for this import.');
       const fd = new FormData();
-      fd.append('classId', importClassId);
       fd.append('file', importFile);
+      if (importMode === 'single') fd.append('classId', importClassId);
       return studentsApi.importCsv(fd);
     },
     onSuccess: (res) => {
-      const payload = res?.data ?? {};
-      const jobId   = payload?.jobId ?? payload?.data?.jobId;
+      const payload = res?.data?.data ?? res?.data ?? {};
+      setImportOpen(false);
+      resetImportDialog();
+
+      // All-classes mode returns { jobs: [...] }
+      if (payload?.jobs) {
+        const ids = payload.jobs.map((j) => j.jobId).filter(Boolean);
+        setImportJobIds(ids);
+        const unmatched = payload.unmatchedSheets?.length ? ` (${payload.unmatchedSheets.length} sheet(s) not matched)` : '';
+        toast.success(`${payload.jobs.length} class import(s) queued.${unmatched}`);
+        return;
+      }
+
+      // Single-class mode
+      const jobId = payload?.jobId;
       if (!jobId) { toast.error(payload?.message ?? 'Import queued, but no job ID was returned.'); return; }
       setImportJobId(jobId);
-      setImportOpen(false);
-      setImportFile(null);
-      setImportClassId('');
       toast.success('Import queued. Processing has started.');
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
+  // Poll single-class import job
   const { data: importStatus } = useQuery({
     queryKey: ['students-import-status', importJobId],
     queryFn: async () => { const res = await studentsApi.importStatus(importJobId); return res.data; },
@@ -300,6 +319,38 @@ export default function StudentsPage() {
     queryClient.invalidateQueries({ queryKey: ['students'] });
     queryClient.invalidateQueries({ queryKey: ['students-status-counts'] });
   }, [importJobId, importStatus, queryClient]);
+
+  // Poll all-classes import jobs and aggregate completion
+  const { data: multiImportStatuses } = useQuery({
+    queryKey: ['students-import-status-multi', importJobIds.join(',')],
+    queryFn: async () => {
+      const results = await Promise.all(importJobIds.map((id) => studentsApi.importStatus(id).then((r) => r.data)));
+      return results;
+    },
+    enabled: importJobIds.length > 0,
+    refetchInterval: (query) => {
+      const statuses = query.state.data ?? [];
+      const allDone = statuses.every((s) => {
+        const r = s?.result ?? s?.data?.result ?? s?.data ?? s;
+        return r?.status === 'complete' || r?.status === 'failed';
+      });
+      return allDone ? false : 2000;
+    },
+  });
+
+  useEffect(() => {
+    if (importJobIds.length === 0 || !multiImportStatuses) return;
+    const resolved = multiImportStatuses.map((s) => s?.result ?? s?.data?.result ?? s?.data ?? s);
+    const allDone = resolved.every((r) => r?.status === 'complete' || r?.status === 'failed');
+    if (!allDone) return;
+    const totalSucceeded = resolved.reduce((sum, r) => sum + (r?.succeeded ?? 0), 0);
+    const totalFailed    = resolved.reduce((sum, r) => sum + (r?.failed ?? 0), 0);
+    if (totalFailed > 0) toast.warning(`All-classes import done: ${totalSucceeded} added, ${totalFailed} failed.`);
+    else toast.success(`All-classes import done: ${totalSucceeded} students added across ${importJobIds.length} class(es).`);
+    setImportJobIds([]);
+    queryClient.invalidateQueries({ queryKey: ['students'] });
+    queryClient.invalidateQueries({ queryKey: ['students-status-counts'] });
+  }, [importJobIds, multiImportStatuses, queryClient]);
 
   const confirm = (title, description, onConfirm) =>
     openConfirm({ title, description, onConfirm });
@@ -556,38 +607,71 @@ export default function StudentsPage() {
         </>
       )}
 
-      {/* ── Import CSV dialog ─────────────────────────────────────────────── */}
+      {/* ── Import dialog ─────────────────────────────────────────────────── */}
       {!isTeacher && (
-        <Dialog open={importOpen} onOpenChange={(v) => { setImportOpen(v); if (!v) setImportFile(null); }}>
+        <Dialog open={importOpen} onOpenChange={(v) => { setImportOpen(v); if (!v) resetImportDialog(); }}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Import Students CSV</DialogTitle>
+              <DialogTitle>Import Students</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
+              {/* Mode selector */}
               <div className="space-y-1.5">
-                <Label>Class *</Label>
-                <Select value={importClassId} onValueChange={setImportClassId}>
-                  <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
+                <Label>Import Mode</Label>
+                <Select value={importMode} onValueChange={(v) => { setImportMode(v); setImportClassId(''); setImportFile(null); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {classes.map((cls) => (
-                      <SelectItem key={cls._id} value={cls._id}>
-                        {cls.name}{cls.stream ? ` ${cls.stream}` : ''}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="single">Single class</SelectItem>
+                    <SelectItem value="all">All classes (multi-sheet Excel)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Class selector — only for single-class mode */}
+              {importMode === 'single' && (
+                <div className="space-y-1.5">
+                  <Label>Class *</Label>
+                  <Select value={importClassId} onValueChange={setImportClassId}>
+                    <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
+                    <SelectContent>
+                      {classes.map((cls) => (
+                        <SelectItem key={cls._id} value={cls._id}>
+                          {cls.name}{cls.stream ? ` ${cls.stream}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* File input */}
               <div className="space-y-1.5">
-                <Label>CSV File *</Label>
-                <Input type="file" accept=".csv,text/csv" onChange={(e) => setImportFile(e.target.files?.[0] ?? null)} />
-                <p className="text-xs text-muted-foreground">
-                  Required columns: <code className="font-mono text-[11px] bg-muted px-1 py-0.5 rounded">admissionNumber, firstName, lastName, gender</code>
-                </p>
+                <Label>File *</Label>
+                <Input
+                  type="file"
+                  accept=".csv,.xlsx,.xls,.ods"
+                  onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+                />
+                {importMode === 'single' ? (
+                  <p className="text-xs text-muted-foreground">
+                    CSV or Excel (.csv, .xlsx, .xls, .ods). Required columns:{' '}
+                    <code className="font-mono text-[11px] bg-muted px-1 py-0.5 rounded">admissionNumber, firstName, lastName, gender</code>
+                  </p>
+                ) : (
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>Excel file (.xlsx, .xls, .ods) with one worksheet per class.</p>
+                    <p>Each <strong>sheet name</strong> must exactly match a class name (e.g. <code className="font-mono text-[11px] bg-muted px-1 py-0.5 rounded">Grade 1</code> or <code className="font-mono text-[11px] bg-muted px-1 py-0.5 rounded">Grade 1 North</code>).</p>
+                    <p>Required columns: <code className="font-mono text-[11px] bg-muted px-1 py-0.5 rounded">admissionNumber, firstName, lastName, gender</code></p>
+                  </div>
+                )}
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setImportOpen(false)}>Cancel</Button>
-              <Button disabled={importSubmitting || !importClassId || !importFile} onClick={() => startImport()}>
+              <Button
+                disabled={importSubmitting || !importFile || (importMode === 'single' && !importClassId)}
+                onClick={() => startImport()}
+              >
                 {importSubmitting ? 'Uploading…' : 'Start Import'}
               </Button>
             </DialogFooter>
