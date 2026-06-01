@@ -21,11 +21,24 @@ const upload = multer({
   fileFilter: importFileFilter,
 });
 
+// Camera photos taken on Android/iOS may arrive with an empty or octet-stream
+// MIME type when captured via the <input capture> attribute. Accept them if the
+// MIME type is image/* OR if the filename extension is a known image format.
+// Sharp will reject the buffer at processing time if it really isn't an image.
+const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif', '.avif', '.bmp', '.tiff', '.tif']);
+function isImageFile(file) {
+  if (String(file.mimetype).startsWith('image/')) return true;
+  // Fallback: check file extension (camera captures sometimes lack MIME type)
+  const name = String(file.originalname ?? '');
+  const ext = name.slice(name.lastIndexOf('.')).toLowerCase();
+  return IMAGE_EXTENSIONS.has(ext);
+}
+
 const imageUpload = multer({
   storage,
   limits: { fileSize: MAX_SIZE_BYTES },
   fileFilter: (_req, file, cb) => {
-    if (String(file.mimetype).startsWith('image/')) return cb(null, true);
+    if (isImageFile(file)) return cb(null, true);
     return cb(new Error('Only image files are allowed.'));
   },
 });
@@ -79,7 +92,7 @@ const multiImageUpload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (String(file.mimetype).startsWith('image/')) return cb(null, true);
+    if (isImageFile(file)) return cb(null, true);
     return cb(new Error('Only image files are allowed.'));
   },
 });

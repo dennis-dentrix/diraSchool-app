@@ -6,6 +6,7 @@ import {
   validateUpdateFeeStructure,
   validateListFeeStructures,
   validateCreatePayment,
+  validateUpdatePayment,
   validateReversePayment,
   validateListPayments,
   validateBalanceQuery,
@@ -23,6 +24,8 @@ import {
   adaptFeeStructures,
   listPayments,
   getPayment,
+  updatePayment,
+  deletePayment,
   reversePayment,
   issueReceipt,
   getStudentBalance,
@@ -60,7 +63,13 @@ router
   .get(validateListPayments, listPayments)
   .post(validateCreatePayment, createPayment);
 
-router.route('/payments/:id').all(canManageFees).get(getPayment);
+const schoolAdminOnly = authorize(ROLES.SCHOOL_ADMIN);
+
+router
+  .route('/payments/:id')
+  .get(canManageFees, getPayment)
+  .patch(schoolAdminOnly, validateUpdatePayment, updatePayment)
+  .delete(schoolAdminOnly, deletePayment);
 
 router.post('/payments/:id/reverse', canManageFees, validateReversePayment, reversePayment);
 router.post('/payments/:id/issue-receipt', canIssueReceipts, issueReceipt);

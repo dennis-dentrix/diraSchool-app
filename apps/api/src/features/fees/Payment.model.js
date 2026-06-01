@@ -79,6 +79,18 @@ const paymentSchema = new mongoose.Schema(
       ref: 'User',
       required: function () { return this.source === PAYMENT_SOURCE.MANUAL; },
     },
+    // Payment type: 'fees' = regular fee structure payment, 'other' = ad-hoc item (transport, lunch, etc.)
+    paymentType: {
+      type: String,
+      enum: ['fees', 'other'],
+      default: 'fees',
+      index: true,
+    },
+    // Populated when paymentType = 'other' — the name of the ad-hoc fee item
+    feeItemName: {
+      type: String,
+      trim: true,
+    },
     notes: {
       type: String,
       trim: true,

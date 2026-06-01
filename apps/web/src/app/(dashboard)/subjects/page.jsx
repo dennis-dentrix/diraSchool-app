@@ -391,7 +391,11 @@ export default function SubjectsPage() {
 
   const { data: classesData } = useQuery({
     queryKey: ['classes'],
-    queryFn: async () => { const res = await classesApi.list({ limit: 100 }); return res.data; },
+    queryFn: async () => {
+      const res = await classesApi.list({ limit: 100 });
+      const d = res.data;
+      return Array.isArray(d) ? d : (d?.classes ?? d?.data ?? []);
+    },
     enabled: adminUser,
   });
 
@@ -840,7 +844,7 @@ export default function SubjectsPage() {
               <Select onValueChange={(v) => setValue('classId', v)}>
                 <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
                 <SelectContent>
-                  {(classesData?.classes ?? classesData?.data ?? []).map((c) => (
+                  {(classesData ?? []).map((c) => (
                     <SelectItem key={c._id} value={c._id}>{c.name}{c.stream ? ` ${c.stream}` : ''}</SelectItem>
                   ))}
                 </SelectContent>

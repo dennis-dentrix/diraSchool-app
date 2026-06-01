@@ -249,7 +249,7 @@ export const deleteFeeStructure = asyncHandler(async (req, res) => {
  * Records a payment for a student in a specific term.
  */
 export const createPayment = asyncHandler(async (req, res) => {
-  const { studentId, academicYear, term, amount, method, reference, notes, paymentDate } = req.body;
+  const { studentId, academicYear, term, amount, method, paymentType, feeItemName, reference, notes, paymentDate } = req.body;
 
   // Verify the student belongs to this school and is active
   const student = await Student.findOne({
@@ -267,6 +267,8 @@ export const createPayment = asyncHandler(async (req, res) => {
     term,
     amount,
     method,
+    paymentType: paymentType || 'fees',
+    feeItemName: paymentType === 'other' ? (feeItemName || undefined) : undefined,
     reference: reference || undefined,
     notes: notes || undefined,
     paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
@@ -311,8 +313,18 @@ export const listPayments = asyncHandler(async (req, res) => {
   if (req.query.term) filter.term = req.query.term;
   if (req.query.method) filter.method = req.query.method;
   if (req.query.status) filter.status = req.query.status;
+  if (req.query.paymentType) filter.paymentType = req.query.paymentType;
   if (req.query.search) {
     filter.reference = new RegExp(req.query.search.trim(), 'i');
+  }
+  if (req.query.dateFrom || req.query.dateTo) {
+    filter.paymentDate = {};
+    if (req.query.dateFrom) filter.paymentDate.$gte = new Date(req.query.dateFrom);
+    if (req.query.dateTo) {
+      const end = new Date(req.query.dateTo);
+      end.setHours(23, 59, 59, 999);
+      filter.paymentDate.$lte = end;
+    }
   }
 
   const total = await Payment.countDocuments(filter);
@@ -347,6 +359,71 @@ export const getPayment = asyncHandler(async (req, res) => {
   if (!payment) return sendError(res, 'Payment not found.', 404);
 
   return sendSuccess(res, { payment });
+});
+
+/**
+ * PATCH /api/v1/fees/payments/:id   (school_admin only)
+ * Edits mutable fields on a payment. Reversed payments cannot be edited.
+ */
+export const updatePayment = asyncHandler(async (req, res) => {
+  const payment = await Payment.findOne({
+    _id: req.params.id,
+    schoolId: req.user.schoolId,
+  });
+
+  if (!payment) return sendError(res, 'Payment not found.', 404);
+
+  if (payment.status === PAYMENT_STATUSES.REVERSED) {
+    return sendError(res, 'Reversed payments cannot be edited.', 400);
+  }
+
+  const EDITABLE = ['amount', 'method', 'reference', 'notes', 'paymentDate', 'payerName', 'payerPhone', 'feeItemName'];
+  for (const field of EDITABLE) {
+    if (req.body[field] !== undefined) {
+      payment[field] = field === 'paymentDate' ? new Date(req.body[field]) : req.body[field];
+    }
+  }
+
+  await payment.save();
+
+  const populated = await Payment.findById(payment._id)
+    .populate('studentId', 'firstName lastName admissionNumber')
+    .populate('classId', 'name stream')
+    .populate('recordedByUserId', 'firstName lastName role')
+    .populate('receiptIssuedByUserId', 'firstName lastName role');
+
+  logAction(req, {
+    action: AUDIT_ACTIONS.UPDATE,
+    resource: AUDIT_RESOURCES.PAYMENT,
+    resourceId: payment._id,
+    meta: { fields: Object.keys(req.body) },
+  });
+
+  return sendSuccess(res, { payment: populated });
+});
+
+/**
+ * DELETE /api/v1/fees/payments/:id   (school_admin only)
+ * Permanently removes a payment record.
+ */
+export const deletePayment = asyncHandler(async (req, res) => {
+  const payment = await Payment.findOne({
+    _id: req.params.id,
+    schoolId: req.user.schoolId,
+  });
+
+  if (!payment) return sendError(res, 'Payment not found.', 404);
+
+  logAction(req, {
+    action: AUDIT_ACTIONS.DELETE,
+    resource: AUDIT_RESOURCES.PAYMENT,
+    resourceId: payment._id,
+    meta: { amount: payment.amount, studentId: payment.studentId?.toString(), receiptNumber: payment.receiptNumber },
+  });
+
+  await payment.deleteOne();
+
+  return sendSuccess(res, { message: 'Payment deleted.' });
 });
 
 /**

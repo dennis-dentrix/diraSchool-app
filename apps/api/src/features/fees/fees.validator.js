@@ -42,6 +42,8 @@ const createPaymentSchema = z.object({
   method: z.enum(Object.values(PAYMENT_METHODS), {
     message: `Method must be one of: ${Object.values(PAYMENT_METHODS).join(', ')}`,
   }),
+  paymentType: z.enum(['fees', 'other']).default('fees'),
+  feeItemName: z.string().trim().optional(),
   reference: z.string().trim().optional(),
   notes: z.string().trim().optional(),
   paymentDate: z.string().optional(),
@@ -110,7 +112,21 @@ export const validateUpdateFeeStructure = validateBody(updateFeeStructureSchema)
 export const validateListFeeStructures = validateQuery(listFeeStructuresSchema);
 export const validateAdaptFeeStructures = validateBody(adaptFeeStructuresSchema);
 
+const updatePaymentSchema = z.object({
+  amount: z.coerce.number().min(1, 'Payment amount must be at least 1').optional(),
+  method: z.enum(Object.values(PAYMENT_METHODS), {
+    message: `Method must be one of: ${Object.values(PAYMENT_METHODS).join(', ')}`,
+  }).optional(),
+  reference: z.string().trim().optional(),
+  notes: z.string().trim().optional(),
+  paymentDate: z.string().optional(),
+  payerName: z.string().trim().optional(),
+  payerPhone: z.string().trim().optional(),
+  feeItemName: z.string().trim().optional(),
+}).strict().refine((d) => Object.keys(d).length > 0, { message: 'At least one field must be provided.' });
+
 export const validateCreatePayment = validateBody(createPaymentSchema);
+export const validateUpdatePayment = validateBody(updatePaymentSchema);
 export const validateReversePayment = validateBody(reversePaymentSchema);
 export const validateListPayments = validateQuery(listPaymentsSchema);
 export const validateBalanceQuery = validateQuery(balanceQuerySchema);

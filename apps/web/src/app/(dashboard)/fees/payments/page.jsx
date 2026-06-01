@@ -34,6 +34,8 @@ const schema = z.object({
   studentId:    z.string().min(1, 'Please select a student'),
   amount:       z.coerce.number().positive('Amount must be positive'),
   method:       z.enum(['cash', 'mpesa', 'bank', 'cheque']),
+  paymentType:  z.enum(['fees', 'other']).default('fees'),
+  feeItemName:  z.string().optional(),
   reference:    z.string().optional(),
   paymentDate:  z.string().optional(),
   academicYear: z.string().min(4, 'Required'),
@@ -94,6 +96,7 @@ function ReceiptPreview({ data }) {
     ['Class', data.className],
     ['Academic Year', data.academicYear],
     ['Term', data.term],
+    ['Payment For', data.paymentType === 'other' && data.feeItemName ? data.feeItemName : 'School Fees'],
     ['Payment Method', capitalize(data.method)],
     data.reference ? ['Reference / Code', data.reference] : null,
     ['Issued By', data.recordedBy],
@@ -103,7 +106,7 @@ function ReceiptPreview({ data }) {
   return (
     <div className="rounded-lg border overflow-hidden">
       <div className="flex items-start justify-between gap-3 bg-muted/40 px-4 py-3 border-b">
-        <p className="text-xs font-bold uppercase tracking-wider">Fee Payment Receipt</p>
+        <p className="text-xs font-bold uppercase tracking-wider">{data.paymentType === 'other' ? 'Payment Receipt' : 'Fee Payment Receipt'}</p>
         <div className="text-right">
           <p className="text-[10px] uppercase text-muted-foreground">Receipt No.</p>
           <p className="font-mono text-sm font-semibold">{data.receiptNumber ?? 'Pending'}</p>
@@ -139,12 +142,13 @@ function RecordPaymentPanel({ open, onClose, settingsData, schoolData, studentsD
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors }, trigger, getValues } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { academicYear: defaultYear, term: defaultTerm, paymentDate: todayIso, method: 'cash' },
+    defaultValues: { academicYear: defaultYear, term: defaultTerm, paymentDate: todayIso, method: 'cash', paymentType: 'fees' },
   });
   const method          = watch('method');
   const formAcademicYear= watch('academicYear');
   const formTerm        = watch('term');
   const amountVal       = watch('amount');
+  const paymentType     = watch('paymentType');
 
   useEffect(() => {
     if (settingsData) {
@@ -169,7 +173,7 @@ function RecordPaymentPanel({ open, onClose, settingsData, schoolData, studentsD
     setStudentSearch('');
     setPendingPayload(null);
     setPreviewData(null);
-    reset({ academicYear: defaultYear, term: defaultTerm, paymentDate: todayIso, method: 'cash' });
+    reset({ academicYear: defaultYear, term: defaultTerm, paymentDate: todayIso, method: 'cash', paymentType: 'fees' });
     onClose();
   };
 
@@ -195,11 +199,13 @@ function RecordPaymentPanel({ open, onClose, settingsData, schoolData, studentsD
     if (!valid) return;
     const values   = getValues();
     const student  = (studentsData?.data ?? studentsData ?? []).find((s) => s._id === values.studentId);
-    const cls      = (classesData?.data ?? classesData?.classes ?? []).find((c) => c._id === selectedClassId);
+    const cls      = (Array.isArray(classesData) ? classesData : (classesData?.classes ?? classesData?.data ?? [])).find((c) => c._id === selectedClassId);
     const payload  = {
       studentId:    values.studentId,
       amount:       Number(values.amount),
       method:       values.method,
+      paymentType:  values.paymentType || 'fees',
+      feeItemName:  values.paymentType === 'other' ? (values.feeItemName || undefined) : undefined,
       reference:    values.reference || undefined,
       paymentDate:  values.paymentDate || undefined,
       academicYear: values.academicYear,
@@ -215,6 +221,8 @@ function RecordPaymentPanel({ open, onClose, settingsData, schoolData, studentsD
       term:           values.term,
       amount:         Number(values.amount),
       method:         values.method,
+      paymentType:    values.paymentType || 'fees',
+      feeItemName:    values.feeItemName || '',
       reference:      values.reference ?? '',
       paymentDate:    values.paymentDate ?? todayIso,
       notes:          values.notes ?? '',
@@ -223,7 +231,7 @@ function RecordPaymentPanel({ open, onClose, settingsData, schoolData, studentsD
     setStep(3);
   };
 
-  const classes = classesData?.data ?? classesData?.classes ?? [];
+  const classes = Array.isArray(classesData) ? classesData : (classesData?.classes ?? classesData?.data ?? []);
   const selectedStudent = (studentsData?.data ?? studentsData ?? []).find((s) => s._id === watch('studentId'));
 
   return (
@@ -352,6 +360,36 @@ function RecordPaymentPanel({ open, onClose, settingsData, schoolData, studentsD
                 </div>
                 {errors.method && <p className="text-xs text-destructive">{errors.method.message}</p>}
               </div>
+
+              {/* Payment type */}
+              <div className="space-y-1.5">
+                <Label>Payment Type</Label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[{ value: 'fees', label: 'School Fees' }, { value: 'other', label: 'Other' }].map((pt) => (
+                    <button
+                      key={pt.value}
+                      type="button"
+                      onClick={() => setValue('paymentType', pt.value)}
+                      className={cn(
+                        'py-2 text-xs rounded-md border transition-colors font-medium',
+                        paymentType === pt.value
+                          ? 'bg-foreground text-background border-foreground'
+                          : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/40',
+                      )}
+                    >
+                      {pt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Fee item name (only for 'other' type) */}
+              {paymentType === 'other' && (
+                <div className="space-y-1.5">
+                  <Label>Fee Item <span className="text-muted-foreground text-xs">(e.g. Transport, Lunch)</span></Label>
+                  <Input {...register('feeItemName')} placeholder="Describe what this payment is for" />
+                </div>
+              )}
 
               {/* Amount (large mono) */}
               <div className="space-y-1.5">
@@ -566,7 +604,24 @@ export default function PaymentsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [yearFilter, setYearFilter]   = useState('');
   const [termFilter, setTermFilter]   = useState('');
+  const [dateFilter, setDateFilter]   = useState('');
   const debouncedSearch = useDebounce(search, 400);
+
+  // Compute date range from dateFilter preset
+  const dateRange = useMemo(() => {
+    const today = new Date();
+    const toIso = (d) => d.toISOString().slice(0, 10);
+    if (dateFilter === 'today') return { from: toIso(today), to: toIso(today) };
+    if (dateFilter === 'week') {
+      const mon = new Date(today); mon.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+      return { from: toIso(mon), to: toIso(today) };
+    }
+    if (dateFilter === 'month') {
+      const first = new Date(today.getFullYear(), today.getMonth(), 1);
+      return { from: toIso(first), to: toIso(today) };
+    }
+    return {};
+  }, [dateFilter]);
 
   const { data: settingsData } = useQuery({
     queryKey: ['settings'],
@@ -582,11 +637,15 @@ export default function PaymentsPage() {
   });
   const { data: classesData } = useQuery({
     queryKey: ['classes'],
-    queryFn: async () => { const res = await classesApi.list({ limit: 100 }); return res.data; },
+    queryFn: async () => {
+      const res = await classesApi.list({ limit: 100 });
+      const d = res.data;
+      return Array.isArray(d) ? d : (d?.classes ?? d?.data ?? []);
+    },
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['payments', page, debouncedSearch, methodFilter, statusFilter, yearFilter, termFilter],
+    queryKey: ['payments', page, debouncedSearch, methodFilter, statusFilter, yearFilter, termFilter, dateFilter],
     queryFn: async () => {
       const res = await feesApi.listPayments({
         page, limit: 25,
@@ -595,6 +654,8 @@ export default function PaymentsPage() {
         status: statusFilter || undefined,
         academicYear: yearFilter || undefined,
         term: termFilter || undefined,
+        dateFrom: dateRange.from || undefined,
+        dateTo: dateRange.to || undefined,
       });
       return res.data;
     },
@@ -602,7 +663,7 @@ export default function PaymentsPage() {
 
   const payments    = data?.data ?? [];
   const pagination  = data?.pagination ?? {};
-  const hasFilters  = search || methodFilter || statusFilter || yearFilter || termFilter;
+  const hasFilters  = search || methodFilter || statusFilter || yearFilter || termFilter || dateFilter;
 
   return (
     <div>
@@ -663,9 +724,18 @@ export default function PaymentsPage() {
               {TERMS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={dateFilter} onValueChange={(v) => { setDateFilter(v === 'all' ? '' : v); setPage(1); }}>
+            <SelectTrigger className="h-9 flex-1 min-w-[100px] sm:w-[130px] sm:flex-none"><SelectValue placeholder="Date" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All dates</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">This week</SelectItem>
+              <SelectItem value="month">This month</SelectItem>
+            </SelectContent>
+          </Select>
           {hasFilters && (
             <Button variant="ghost" size="sm" className="h-9"
-              onClick={() => { setSearch(''); setMethodFilter(''); setStatusFilter(''); setYearFilter(''); setTermFilter(''); setPage(1); }}>
+              onClick={() => { setSearch(''); setMethodFilter(''); setStatusFilter(''); setYearFilter(''); setTermFilter(''); setDateFilter(''); setPage(1); }}>
               Clear
             </Button>
           )}
@@ -725,6 +795,9 @@ export default function PaymentsPage() {
                         <span className="font-mono text-sm font-semibold tabular-nums">{formatCurrency(p.amount)}</span>
                       </td>
                       <td className="px-3 py-2.5">
+                        {p.paymentType === 'other' && p.feeItemName && (
+                          <p className="text-xs font-medium text-foreground leading-tight">{p.feeItemName}</p>
+                        )}
                         <span className="font-mono text-[11px] text-muted-foreground tabular-nums">{p.reference ?? '—'}</span>
                       </td>
                       <td className="px-3 py-2.5"><StatusBadge status={p.status} /></td>
