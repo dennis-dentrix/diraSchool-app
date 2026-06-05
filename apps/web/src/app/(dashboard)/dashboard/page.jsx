@@ -600,12 +600,11 @@ export default function DashboardPage() {
                   value={formatCurrency(feeData.todayAmount ?? 0)}
                   hint={`${formatCurrency(totalCollected)} of ${formatCurrency(totalTarget)} target`}
                   tone={feeCollectionPct >= 80 ? 'green' : feeCollectionPct >= 50 ? 'amber' : 'red'}
-                  badge={`${feeCollectionPct}%`}
                   onClick={() => router.push('/fees/payments')}
                 />
               </div>
               <StatCard label="Active Students" value={activeStudents} hint={`${Math.max(0, totalStudents - activeStudents)} inactive`} tone="blue" onClick={() => router.push('/students')} />
-              <StatCard label="Staff" value={staffData.active ?? staffData.total ?? 0} hint={`${staffAwaitingFirstLogin} awaiting first login`} badge={`${staffData.total ?? 0} total`} tone={staffAwaitingFirstLogin > 0 ? 'amber' : 'neutral'} onClick={() => router.push('/staff')} />
+              <StatCard label="Staff" value={staffData.active ?? staffData.total ?? 0} hint={`${staffAwaitingFirstLogin} awaiting first login`} tone={staffAwaitingFirstLogin > 0 ? 'amber' : 'neutral'} onClick={() => router.push('/staff')} />
               <StatCard label="Defaulters" value={studentsOverdue} hint={amountOverdue > 0 ? `${formatCurrency(amountOverdue)} outstanding` : 'Students with unpaid fees'} tone={studentsOverdue > 20 ? 'red' : studentsOverdue > 5 ? 'amber' : 'neutral'} onClick={() => router.push('/fees')} />
             </div>
             <div data-tour="fee-health-widget">
