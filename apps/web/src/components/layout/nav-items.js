@@ -54,8 +54,16 @@ export const schoolNavGroups = [
           { label: 'Fee Structures', href: '/fees/structures' },
         ],
       },
-      { label: 'Staff',            href: '/staff',            icon: Users,           roles: ADMIN },
-      { label: 'Staff Attendance', href: '/staff-attendance',  icon: ClipboardCheck,  roles: ADMIN },
+      {
+        label: 'Staff',
+        href: '/staff',
+        icon: Users,
+        roles: ADMIN,
+        children: [
+          { label: 'Directory',  href: '/staff'            },
+          { label: 'Check-ins',  href: '/staff?tab=checkins' },
+        ],
+      },
       {
         label: 'Messaging',
         href: '/messaging',

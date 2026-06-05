@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -475,10 +476,13 @@ function CheckInsTab() {
 export default function StaffPage() {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const searchParams = useSearchParams();
+
   const isDeputy      = user?.role === 'deputy_headteacher';
   const canManageLeave = LEAVE_APPROVER_ROLES.includes(user?.role);
   const roleOptions   = isDeputy ? DEPUTY_MANAGEABLE_ROLES : STAFF_ROLES;
 
+  const [activeTab, setActiveTab] = useState('directory');
   const [search,       setSearch]      = useState('');
   const [page,         setPage]        = useState(1);
   const [open,         setOpen]        = useState(false);
@@ -495,6 +499,14 @@ export default function StaffPage() {
   });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const debouncedSearch = useDebounce(search, 400);
+
+  // Set active tab from URL search params
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['directory', 'leave', 'checkins'].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   // Total counts per status for summary cards
   const { data: staffCounts } = useQuery({
@@ -605,7 +617,7 @@ export default function StaffPage() {
         </Button>
       </PageHeader>
 
-      <Tabs defaultValue="directory">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="directory">Directory</TabsTrigger>
           {canManageLeave && (
