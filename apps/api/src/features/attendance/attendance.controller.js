@@ -6,6 +6,7 @@ import SchoolSettings from '../settings/SchoolSettings.model.js';
 import asyncHandler from '../../utils/asyncHandler.js';
 import { sendSuccess, sendError } from '../../utils/response.js';
 import { paginate } from '../../utils/pagination.js';
+import { resolveCurrentTermAndYear } from '../../utils/term.js';
 import {
   ATTENDANCE_REGISTER_STATUSES,
   ROLES,
@@ -90,10 +91,10 @@ const resolveSubstituteMeta = async (req, cls, substituteTeacherId) => {
 
 /**
  * POST /api/v1/attendance/registers
- * Creates a class attendance register for a specific date.
+ * Creates a class attendance register for a specific date and session.
  */
 export const createAttendanceRegister = asyncHandler(async (req, res) => {
-  const { classId, date, entries, substituteTeacherId, substituteNote } = req.body;
+  const { classId, date, session, term: bodyTerm, entries, substituteTeacherId, substituteNote } = req.body;
 
   const schoolStatus = await checkSchoolOpen(req.user.schoolId, date);
   if (!schoolStatus.open) {
@@ -132,12 +133,20 @@ export const createAttendanceRegister = asyncHandler(async (req, res) => {
     finalEntries = classStudents.map((s) => ({ studentId: s._id, status: 'present' }));
   }
 
+  // Resolve term: use provided term or default to currentTerm from school settings
+  let finalTerm = bodyTerm;
+  if (!finalTerm) {
+    const schoolSettings = await SchoolSettings.findOne({ schoolId: req.user.schoolId }).lean();
+    finalTerm = schoolSettings?.currentTerm || cls.term;
+  }
+
   const register = await Attendance.create({
     schoolId: req.user.schoolId,
     classId,
     date: normaliseDate(date),
+    session,
     academicYear: cls.academicYear,
-    term: cls.term,
+    term: finalTerm,
     entries: finalEntries,
     substituteNote: substituteNote || undefined,
     ...substituteMeta,
@@ -154,7 +163,7 @@ export const createAttendanceRegister = asyncHandler(async (req, res) => {
 
 /**
  * GET /api/v1/attendance/registers
- * Lists attendance registers for a school.
+ * Lists attendance registers for a school with optional session filtering.
  */
 export const listAttendanceRegisters = asyncHandler(async (req, res) => {
   const filter = { schoolId: req.user.schoolId };
@@ -177,6 +186,7 @@ export const listAttendanceRegisters = asyncHandler(async (req, res) => {
     filter.classId = req.query.classId;
   }
   if (req.query.date) filter.date = normaliseDate(req.query.date);
+  if (req.query.session) filter.session = req.query.session;
   if (req.query.status) filter.status = req.query.status;
   if (req.query.term) filter.term = req.query.term;
   if (req.query.academicYear) filter.academicYear = req.query.academicYear;
@@ -190,7 +200,7 @@ export const listAttendanceRegisters = asyncHandler(async (req, res) => {
   const { skip, limit, meta } = paginate(req.query, total);
 
   const registers = await Attendance.find(filter)
-    .sort({ date: -1, createdAt: -1 })
+    .sort({ date: -1, session: 1, createdAt: -1 })
     .skip(skip)
     .limit(limit)
     .populate('classId', 'name stream academicYear term')
@@ -285,6 +295,50 @@ export const updateAttendanceRegister = asyncHandler(async (req, res) => {
     .populate('entries.studentId', 'firstName lastName admissionNumber');
 
   return sendSuccess(res, { register: populated });
+});
+
+/**
+ * GET /api/v1/attendance/daily
+ * Gets both morning and afternoon attendance registers for a specific class and date.
+ */
+export const getDailyAttendanceSessions = asyncHandler(async (req, res) => {
+  const { classId, date } = req.query;
+
+  if (!classId || !date) {
+    return sendError(res, 'classId and date are required query parameters.', 400);
+  }
+
+  const filter = {
+    schoolId: req.user.schoolId,
+    classId,
+    date: normaliseDate(date),
+  };
+
+  // Teachers see their own class's registers plus any they were assigned to take
+  if ([ROLES.TEACHER, ROLES.DEPARTMENT_HEAD].includes(req.user.role)) {
+    const teacherClass = await Class.findOne({
+      classTeacherId: req.user._id,
+      schoolId: req.user.schoolId,
+      isActive: true,
+    }).select('_id');
+
+    const orConditions = [
+      { takenByUserId: req.user._id },
+      { substituteTeacherId: req.user._id },
+    ];
+    if (teacherClass && teacherClass._id.toString() !== classId) {
+      return sendError(res, 'You do not have permission to view this class.', 403);
+    }
+  }
+
+  const registers = await Attendance.find(filter)
+    .sort({ session: 1 })
+    .populate('classId', 'name stream academicYear term')
+    .populate('takenByUserId', 'firstName lastName role')
+    .populate('substituteTeacherId', 'firstName lastName role')
+    .populate('entries.studentId', 'firstName lastName admissionNumber');
+
+  return sendSuccess(res, { registers });
 });
 
 /**

@@ -24,6 +24,10 @@ const createAttendanceRegisterSchema = z
   .object({
     classId: z.string().regex(objectIdRegex, 'Invalid class ID'),
     date: z.string().date('Date must be in YYYY-MM-DD format'),
+    session: z.enum(['morning', 'afternoon'], {
+      message: 'Session must be either "morning" or "afternoon"',
+    }),
+    term: z.string().optional(),
     entries: z.array(attendanceEntrySchema).optional(),
     substituteTeacherId: z.string().regex(objectIdRegex, 'Invalid teacher ID').optional(),
     substituteNote: z.string().trim().max(300).optional(),
@@ -53,6 +57,7 @@ const updateAttendanceRegisterSchema = z
 const listAttendanceSchema = z.object({
   classId: z.string().regex(objectIdRegex, 'Invalid class ID').optional(),
   date: z.string().date('Date must be in YYYY-MM-DD format').optional(),
+  session: z.enum(['morning', 'afternoon']).optional(),
   status: z.enum(Object.values(ATTENDANCE_REGISTER_STATUSES)).optional(),
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().optional(),

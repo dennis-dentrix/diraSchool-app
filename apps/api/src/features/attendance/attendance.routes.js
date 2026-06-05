@@ -9,6 +9,7 @@ import {
 import {
   createAttendanceRegister,
   listAttendanceRegisters,
+  getDailyAttendanceSessions,
   getAttendanceRegister,
   updateAttendanceRegister,
   submitAttendanceRegister,
@@ -23,6 +24,7 @@ const canRead  = authorize(...ROLE_GROUPS.ALL_STAFF);
 const canWrite = authorize(...ROLE_GROUPS.ACADEMIC);
 
 router.get('/registers', canRead, validateListAttendanceRegisters, listAttendanceRegisters);
+router.get('/daily', canRead, getDailyAttendanceSessions);
 router.post('/registers', canWrite, validateCreateAttendanceRegister, createAttendanceRegister);
 
 router.get('/registers/:id', canRead, getAttendanceRegister);

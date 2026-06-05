@@ -175,3 +175,19 @@ export const cacheDelPattern = async (pattern) => {
     // Cache is optional. Ignore Redis failures and keep request handling alive.
   }
 };
+
+/**
+ * Efficiently delete multiple specific cache keys.
+ * Preferred over cacheDelPattern which uses slow redis.keys() scan.
+ *
+ * @param {string[]} keys - Array of cache keys to delete
+ */
+export const cacheInvalidateMultiple = async (keys) => {
+  const redis = getRedis();
+  if (!redis || !keys || keys.length === 0) return;
+  try {
+    await redis.del(...keys);
+  } catch {
+    // Cache is optional. Ignore Redis failures and keep request handling alive.
+  }
+};

@@ -54,6 +54,12 @@ const attendanceSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    // Session — morning or afternoon attendance session
+    session: {
+      type: String,
+      enum: ['morning', 'afternoon'],
+      required: true,
+    },
     status: {
       type: String,
       enum: Object.values(ATTENDANCE_REGISTER_STATUSES),
@@ -88,7 +94,7 @@ const attendanceSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// One register per class per day in a school
-attendanceSchema.index({ schoolId: 1, classId: 1, date: 1 }, { unique: true });
+// One register per class per day per session in a school
+attendanceSchema.index({ schoolId: 1, classId: 1, date: 1, session: 1 }, { unique: true });
 
 export default mongoose.models.Attendance || mongoose.model('Attendance', attendanceSchema);

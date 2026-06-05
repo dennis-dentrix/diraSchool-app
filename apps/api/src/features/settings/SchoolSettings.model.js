@@ -54,6 +54,13 @@ const schoolSettingsSchema = new mongoose.Schema(
       type: String,
       match: [/^\d{4}$/, 'Academic year must be a 4-digit year'],
     },
+    // Active term for this school — set by admins, used to auto-populate attendance
+    currentTerm: {
+      type: String,
+      enum: TERMS,
+      required: true,
+      default: 'Term 1',
+    },
     // Term date windows — used to validate attendance dates, lock report card periods, etc.
     terms: {
       type: [termDateSchema],
