@@ -10,7 +10,7 @@ export const allowedOrigins = [
   // Production
   'https://diraschool.com',
   'https://www.diraschool.com',
-  'https://diraschool.onrender.com',
+  'https://dira-school-api-web.vercel.app',
   // Staging
   'https://staging.diraschool.com',
   // Temporary: direct IP access before DNS propagation
