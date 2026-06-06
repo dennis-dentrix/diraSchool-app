@@ -621,10 +621,7 @@ function BalanceDialog({ open, onClose, studentsData, settingsData, classesData 
                 ) : (
                   filteredStudents.map((s) => (
                     <SelectItem key={s._id} value={s._id}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{s.firstName} {s.lastName}</span>
-                        <span className="text-xs text-muted-foreground">{s.admissionNumber} • {s.classId?.name ?? '—'}</span>
-                      </div>
+                      {s.firstName} {s.lastName} — {s.admissionNumber} ({s.classId?.name ?? '—'})
                     </SelectItem>
                   ))
                 )}
