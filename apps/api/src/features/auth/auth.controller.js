@@ -23,12 +23,21 @@ const signToken = (userId) =>
 
 const attachCookie = (res, token) => {
   const oneDay = 24 * 60 * 60 * 1000;
+  const domain = getCookieDomain();
+
+  // For Render (onrender.com), explicitly set domain and use Lax for cross-subdomain requests.
+  // For DigitalOcean (custom domain), use domain and Strict.
+  // For development (localhost), no domain, use Lax.
+  const isRender = domain === undefined && env.CLIENT_URL?.includes('onrender.com');
+  const cookieDomain = isRender ? '.onrender.com' : domain;
+  const sameSitePolicy = env.isProduction ? 'lax' : 'lax'; // Lax is compatible with both Render and DigitalOcean
+
   res.cookie('token', token, {
     httpOnly: true,
     secure: env.isProduction,
-    sameSite: env.isProduction ? 'strict' : 'lax',
+    sameSite: sameSitePolicy,
     maxAge: oneDay,
-    domain: getCookieDomain(), // undefined in dev; '.diraschool.com' in prod
+    domain: cookieDomain,
   });
 };
 
@@ -232,10 +241,14 @@ export const login = asyncHandler(async (req, res) => {
  * Protected route.
  */
 export const logout = asyncHandler(async (req, res) => {
+  const domain = getCookieDomain();
+  const isRender = domain === undefined && env.CLIENT_URL?.includes('onrender.com');
+  const cookieDomain = isRender ? '.onrender.com' : domain;
+
   res.cookie('token', '', {
     httpOnly: true,
     expires: new Date(0),
-    domain: getCookieDomain(),
+    domain: cookieDomain,
   });
   if (req.user) {
     logAction(req, { action: 'logout', resource: 'Auth' });

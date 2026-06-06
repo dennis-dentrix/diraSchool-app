@@ -64,12 +64,16 @@ export const protect = async (req, res, next) => {
   // Active users are never logged out; idle users expire after 24 h.
   if (decoded.exp && decoded.exp - Math.floor(Date.now() / 1000) < 6 * 60 * 60) {
     const newToken = jwt.sign({ id: decoded.id }, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });
+    const domain = getCookieDomain();
+    const isRender = domain === undefined && env.CLIENT_URL?.includes('onrender.com');
+    const cookieDomain = isRender ? '.onrender.com' : domain;
+
     res.cookie('token', newToken, {
       httpOnly: true,
       secure: env.isProduction,
-      sameSite: env.isProduction ? 'strict' : 'lax',
+      sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000,
-      domain: getCookieDomain(),
+      domain: cookieDomain,
     });
   }
 
