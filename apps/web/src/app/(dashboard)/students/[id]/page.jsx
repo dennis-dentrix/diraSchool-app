@@ -4,11 +4,11 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { ArrowLeft, Pencil, UserPlus, Trash2, Printer, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Pencil, UserPlus, Trash2, Printer, TrendingUp, MoveRight } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { studentsApi, feesApi, attendanceApi, getErrorMessage } from '@/lib/api';
+import { studentsApi, feesApi, attendanceApi, classesApi, getErrorMessage } from '@/lib/api';
 import { useAuthStore, isAdmin } from '@/store/auth.store';
 import { formatDate, formatCurrency, getStatusColor, capitalize } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -296,6 +296,9 @@ export default function StudentDetailPage() {
   const [guardianDialogOpen, setGuardianDialogOpen] = useState(false);
   const [editingGuardianIdx, setEditingGuardianIdx] = useState(null); // null = add new
   const [photoFile, setPhotoFile] = useState(null);
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [selectedNewClassId, setSelectedNewClassId] = useState(null);
+  const [transferNote, setTransferNote] = useState('');
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(editSchema),
@@ -304,6 +307,15 @@ export default function StudentDetailPage() {
   const guardianForm = useForm({
     resolver: zodResolver(guardianSchema),
     defaultValues: { relationship: 'guardian' },
+  });
+
+  const { data: classesData } = useQuery({
+    queryKey: ['classes'],
+    queryFn: async () => {
+      const res = await classesApi.list({});
+      const d = res.data;
+      return Array.isArray(d) ? d : (d?.classes ?? d?.data ?? []);
+    },
   });
 
   const { data, isLoading } = useQuery({
@@ -339,6 +351,19 @@ export default function StudentDetailPage() {
     onSuccess: () => {
       toast.success('Student photo uploaded');
       setPhotoFile(null);
+      queryClient.invalidateQueries({ queryKey: ['student', id] });
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  const { mutate: transferStudentToClass, isPending: transferring } = useMutation({
+    mutationFn: (body) => studentsApi.transfer(id, body),
+    onSuccess: () => {
+      toast.success('Student transferred successfully');
+      setTransferDialogOpen(false);
+      setSelectedNewClassId(null);
+      setTransferNote('');
       queryClient.invalidateQueries({ queryKey: ['student', id] });
       queryClient.invalidateQueries({ queryKey: ['students'] });
     },
@@ -396,6 +421,23 @@ export default function StudentDetailPage() {
     updateStudent({ guardians: updatedGuardians });
   };
 
+  const openTransferDialog = () => {
+    setSelectedNewClassId(null);
+    setTransferNote('');
+    setTransferDialogOpen(true);
+  };
+
+  const submitTransfer = () => {
+    if (!selectedNewClassId) {
+      toast.error('Please select a class');
+      return;
+    }
+    transferStudentToClass({
+      newClassId: selectedNewClassId,
+      ...(transferNote && { note: transferNote }),
+    });
+  };
+
   if (isLoading) return (
     <div className="space-y-4">
       <Skeleton className="h-8 w-48" />
@@ -426,9 +468,14 @@ export default function StudentDetailPage() {
           {capitalize(student?.status ?? '')}
         </span>
         {!isTeacher && (
-          <Button size="sm" variant="outline" onClick={openEdit}>
-            <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit
-          </Button>
+          <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+            <Button size="sm" variant="outline" onClick={openEdit}>
+              <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit
+            </Button>
+            <Button size="sm" variant="outline" onClick={openTransferDialog}>
+              <MoveRight className="h-3.5 w-3.5 mr-1.5" /> Transfer to Class
+            </Button>
+          </div>
         )}
       </div>
       {!isTeacher && (
@@ -702,6 +749,60 @@ export default function StudentDetailPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Transfer to class dialog ────────────────────────────────────────── */}
+      <Dialog open={transferDialogOpen} onOpenChange={setTransferDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Transfer Student to Class</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Current Class</Label>
+              <div className="flex items-center px-3 py-2 rounded-md border border-border bg-muted">
+                <span className="text-sm text-foreground">
+                  {typeof cls === 'object' ? `${cls.name}${cls.stream ? ` ${cls.stream}` : ''}` : '—'}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="new-class">Move to Class</Label>
+              <Select value={selectedNewClassId || ''} onValueChange={setSelectedNewClassId}>
+                <SelectTrigger id="new-class">
+                  <SelectValue placeholder="Select a class..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(classesData ?? [])
+                    .filter((c) => !cls || c._id !== cls._id)
+                    .map((c) => (
+                      <SelectItem key={c._id} value={c._id}>
+                        {c.name}{c.stream ? ` ${c.stream}` : ''} — {c.levelCategory} ({c.academicYear})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="transfer-note">Note (optional)</Label>
+              <Input
+                id="transfer-note"
+                placeholder="e.g. Due to family relocation..."
+                value={transferNote}
+                onChange={(e) => setTransferNote(e.target.value)}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setTransferDialogOpen(false)}>Cancel</Button>
+              <Button type="button" onClick={submitTransfer} disabled={transferring || !selectedNewClassId}>
+                {transferring ? 'Transferring…' : 'Transfer Student'}
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
