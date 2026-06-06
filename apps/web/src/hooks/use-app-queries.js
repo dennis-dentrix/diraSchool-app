@@ -52,13 +52,13 @@ const fetchSubjectsByClass = async (classId) => {
 };
 
 const fetchStudentsByClass = async (classId) => {
-  const res = await studentsApi.list({ classId, status: "active" });
+  const res = await studentsApi.list({ classId, status: "active", limit: 1000 });
   const d = res.data;
   return Array.isArray(d) ? d : (d?.students ?? d?.data ?? []);
 };
 
 const fetchAllStudents = async () => {
-  const res = await studentsApi.list({ status: "active" });
+  const res = await studentsApi.list({ status: "active", limit: 1000 });
   const d = res.data;
   return Array.isArray(d) ? d : (d?.students ?? d?.data ?? []);
 };
