@@ -200,7 +200,8 @@ function RecordPaymentPanel({ open, onClose, settingsData, schoolData, studentsD
     if (!valid) return;
     const values   = getValues();
     const student  = (studentsData ?? []).find((s) => s._id === values.studentId);
-    const cls      = (classesData ?? []).find((c) => c._id === selectedClassId);
+    // Use student's actual class, not the filter class
+    const cls      = (classesData ?? []).find((c) => c._id === (student?.classId?._id ?? student?.classId));
     const payload  = {
       studentId:    values.studentId,
       amount:       Number(values.amount),
