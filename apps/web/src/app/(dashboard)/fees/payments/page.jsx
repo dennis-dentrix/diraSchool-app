@@ -741,61 +741,46 @@ export default function PaymentsPage() {
       </PageHeader>
 
       {/* Running-totals strip */}
-      <TotalsStrip payments={payments} loading={isLoading} />
+      <div className="grid grid-cols-3 gap-px rounded-lg border bg-border overflow-hidden mb-6">
+        {[
+          { label: "Today's count", value: isLoading ? '—' : String(payments.length) },
+          { label: "Today's KES", value: isLoading ? '—' : formatCurrency(payments.filter((p) => String(p.paymentDate ?? p.createdAt ?? '').slice(0, 10) === new Date().toISOString().slice(0, 10)).reduce((s, p) => s + (p.amount ?? 0), 0)) },
+          { label: 'Week to date', value: isLoading ? '—' : formatCurrency(payments.filter((p) => String(p.paymentDate ?? p.createdAt ?? '').slice(0, 10) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)).reduce((s, p) => s + (p.amount ?? 0), 0)) },
+        ].map((s) => (
+          <div key={s.label} className="bg-card px-3 py-3 sm:px-4">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1 leading-tight">{s.label}</p>
+            <p className="font-mono text-sm sm:text-base font-semibold tabular-nums">{s.value}</p>
+          </div>
+        ))}
+      </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        <div className="relative w-full sm:flex-1 sm:min-w-[160px] sm:max-w-xs">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+      {/* Filters - Clean organized layout */}
+      <div className="space-y-3 mb-6">
+        {/* Search bar */}
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder="Search reference…"
+            placeholder="Search reference or student…"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="pl-8 h-9"
+            className="pl-10 h-9 text-sm"
           />
         </div>
-        <div className="flex gap-2 flex-wrap flex-1">
-          <Select value={methodFilter} onValueChange={(v) => { setMethodFilter(v === 'all' ? '' : v); setPage(1); }}>
-            <SelectTrigger className="h-9 flex-1 min-w-[110px] sm:w-[130px] sm:flex-none"><SelectValue placeholder="Method" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All methods</SelectItem>
-              {PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{capitalize(m)}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={yearFilter} onValueChange={(v) => { setYearFilter(v === 'all' ? '' : v); setPage(1); }}>
-            <SelectTrigger className="h-9 flex-1 min-w-[90px] sm:w-[120px] sm:flex-none"><SelectValue placeholder="Year" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All years</SelectItem>
-              {ACADEMIC_YEARS.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={termFilter} onValueChange={(v) => { setTermFilter(v === 'all' ? '' : v); setPage(1); }}>
-            <SelectTrigger className="h-9 flex-1 min-w-[90px] sm:w-[110px] sm:flex-none"><SelectValue placeholder="Term" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All terms</SelectItem>
-              {TERMS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={dateFilter} onValueChange={(v) => { setDateFilter(v === 'all' ? '' : v); setPage(1); }}>
-            <SelectTrigger className="h-9 flex-1 min-w-[100px] sm:w-[130px] sm:flex-none"><SelectValue placeholder="Date" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All dates</SelectItem>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="week">This week</SelectItem>
-              <SelectItem value="month">This month</SelectItem>
-            </SelectContent>
-          </Select>
+
+        {/* Filter dropdowns */}
+        <div className="flex flex-wrap gap-2">
           <Select value={paymentTypeFilter} onValueChange={(v) => { setPaymentTypeFilter(v === 'all' ? '' : v); setFeeItemFilter(''); setPage(1); }}>
-            <SelectTrigger className="h-9 flex-1 min-w-[110px] sm:w-[140px] sm:flex-none"><SelectValue placeholder="Payment Type" /></SelectTrigger>
+            <SelectTrigger className="h-9 w-[140px]"><SelectValue placeholder="Payment Type" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All types</SelectItem>
               <SelectItem value="fees">School Fees</SelectItem>
               <SelectItem value="other">Other Fees</SelectItem>
             </SelectContent>
           </Select>
+
           {paymentTypeFilter === 'other' && uniqueFeeItems.length > 0 && (
             <Select value={feeItemFilter} onValueChange={(v) => { setFeeItemFilter(v === 'all' ? '' : v); setPage(1); }}>
-              <SelectTrigger className="h-9 flex-1 min-w-[110px] sm:w-[140px] sm:flex-none"><SelectValue placeholder="Fee Item" /></SelectTrigger>
+              <SelectTrigger className="h-9 w-[140px]"><SelectValue placeholder="Fee Item" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All items</SelectItem>
                 {uniqueFeeItems.map((item) => (
@@ -804,10 +789,45 @@ export default function PaymentsPage() {
               </SelectContent>
             </Select>
           )}
+
+          <Select value={methodFilter} onValueChange={(v) => { setMethodFilter(v === 'all' ? '' : v); setPage(1); }}>
+            <SelectTrigger className="h-9 w-[130px]"><SelectValue placeholder="Method" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All methods</SelectItem>
+              {PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{capitalize(m)}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          <Select value={yearFilter} onValueChange={(v) => { setYearFilter(v === 'all' ? '' : v); setPage(1); }}>
+            <SelectTrigger className="h-9 w-[110px]"><SelectValue placeholder="Year" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All years</SelectItem>
+              {ACADEMIC_YEARS.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          <Select value={termFilter} onValueChange={(v) => { setTermFilter(v === 'all' ? '' : v); setPage(1); }}>
+            <SelectTrigger className="h-9 w-[110px]"><SelectValue placeholder="Term" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All terms</SelectItem>
+              {TERMS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          <Select value={dateFilter} onValueChange={(v) => { setDateFilter(v === 'all' ? '' : v); setPage(1); }}>
+            <SelectTrigger className="h-9 w-[130px]"><SelectValue placeholder="Date" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All dates</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">This week</SelectItem>
+              <SelectItem value="month">This month</SelectItem>
+            </SelectContent>
+          </Select>
+
           {hasFilters && (
-            <Button variant="ghost" size="sm" className="h-9"
+            <Button variant="ghost" size="sm" className="h-9 px-3 text-muted-foreground hover:text-foreground"
               onClick={() => { setSearch(''); setMethodFilter(''); setStatusFilter(''); setYearFilter(''); setTermFilter(''); setDateFilter(''); setPaymentTypeFilter(''); setFeeItemFilter(''); setPage(1); }}>
-              Clear
+              ✕ Clear
             </Button>
           )}
         </div>
