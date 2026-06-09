@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight } from 'lucide-react';
 import { feesApi } from '@/lib/api';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { ACADEMIC_YEARS, TERMS } from '@/lib/constants';
 import { useSchoolTermDefaults } from '@/hooks/use-school-term-defaults';
@@ -102,48 +102,35 @@ export default function FeesPage() {
     },
   });
 
-  const { data: paymentsRes, isLoading: paymentsLoading } = useQuery({
-    queryKey: ['payments-overview', year, term],
-    queryFn: async () => {
-      const res = await feesApi.listPayments({ limit: 60, academicYear: year, term });
-      return res.data;
-    },
-  });
+  const summary       = summaryRes?.summary ?? summaryRes?.data?.summary ?? {};
+  const recentPayments = summaryRes?.recentPayments ?? summaryRes?.data?.recentPayments ?? [];
 
-  const summary  = summaryRes?.summary ?? summaryRes?.data?.summary ?? {};
-  const payments = paymentsRes?.data ?? paymentsRes?.payments ?? [];
-
-  const collected = summary?.termToDate?.totalAmount ?? summary?.monthToDate?.totalAmount ?? 0;
+  const collected = summary?.termToDate?.totalAmount ?? 0;
   const target    = summary?.termFees?.totalAmount ?? 0;
   const variance  = collected - target;
 
-  // 12-week sparkline
+  // Today's payments (API already returns today totals; also filter recent list for ledger rows)
+  const todayStr      = new Date().toISOString().slice(0, 10);
+  const todayPayments = useMemo(() =>
+    recentPayments.filter((p) => String(p.paymentDate ?? p.createdAt ?? '').slice(0, 10) === todayStr),
+  [recentPayments, todayStr]);
+  const todayTotal = summary?.today?.totalAmount ?? todayPayments.reduce((s, p) => s + (p.amount ?? 0), 0);
+
+  // Defaulters — now returned directly by the API
+  const defaulters = summary?.defaulters ?? [];
+
+  // 12-week sparkline from recent payments
   const sparkData = useMemo(() => {
-    if (!Array.isArray(payments)) return [];
+    if (!Array.isArray(recentPayments)) return [];
     const now = Date.now();
     const weeks = Array(12).fill(0);
-    for (const p of payments) {
+    for (const p of recentPayments) {
       const ms = new Date(p.paymentDate ?? p.createdAt).getTime();
       const w = Math.floor((now - ms) / (7 * 24 * 60 * 60 * 1000));
       if (w >= 0 && w < 12) weeks[11 - w] += p.amount;
     }
     return weeks;
-  }, [payments]);
-
-  // Today's payments
-  const todayStr     = new Date().toISOString().slice(0, 10);
-  const todayPayments = useMemo(() =>
-    Array.isArray(payments)
-      ? payments.filter((p) => String(p.paymentDate ?? p.createdAt ?? '').slice(0, 10) === todayStr)
-      : [],
-  [payments, todayStr]);
-  const todayTotal = todayPayments.reduce((s, p) => s + (p.amount ?? 0), 0);
-
-  // Defaulters from summary
-  const defaulters = useMemo(() => {
-    const list = summary?.defaulters ?? summary?.students?.defaulters ?? [];
-    return [...list].sort((a, b) => (b.outstanding ?? b.balance ?? 0) - (a.outstanding ?? a.balance ?? 0));
-  }, [summary]);
+  }, [recentPayments]);
 
   return (
     <div className="space-y-5 sm:space-y-6" data-tour="finance-dashboard">
@@ -235,7 +222,7 @@ export default function FeesPage() {
           </div>
         </div>
         <div className="rounded-lg border bg-card">
-          {paymentsLoading ? (
+          {summaryLoading ? (
             <div className="px-4 divide-y">
               {[...Array(4)].map((_, i) => <div key={i} className="py-2.5"><Skeleton className="h-9 w-full" /></div>)}
             </div>

@@ -619,88 +619,122 @@ export const getBulkFeeStats = asyncHandler(async (req, res) => {
 
 /**
  * GET /api/v1/fees/dashboard-summary
- * Server-side finance totals for dashboard cards and follow-up metrics.
+ * Term-based finance totals: collected, target, defaulters, today's ledger.
  *
  * Query params (optional):
- *   month=1..12
- *   year=YYYY
+ *   academicYear=2026
+ *   term=Term 1
  */
 export const getFinanceDashboardSummary = asyncHandler(async (req, res) => {
+  const { schoolId } = req.user;
+  const { academicYear, term } = req.query;
+
   const now = new Date();
-  const month = Number(req.query.month) || (now.getUTCMonth() + 1);
-  const year = Number(req.query.year) || now.getUTCFullYear();
+  const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const dayEnd   = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
 
-  const monthStart = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
-  const monthEnd = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
-  const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
-  const dayEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0));
+  const termMatch = { schoolId, status: PAYMENT_STATUSES.COMPLETED };
+  if (academicYear) termMatch.academicYear = academicYear;
+  if (term)         termMatch.term         = term;
 
-  const baseMatch = {
-    schoolId: req.user.schoolId,
-    status: PAYMENT_STATUSES.COMPLETED,
-  };
+  const structureFilter = { schoolId };
+  if (academicYear) structureFilter.academicYear = academicYear;
+  if (term)         structureFilter.term         = term;
 
   const [
-    monthAgg,
+    termAgg,
     todayAgg,
-    monthPaidStudentsAgg,
     unissuedReceipts,
-    totalStudents,
     recentPayments,
+    structures,
+    students,
+    termPaymentsByStudent,
   ] = await Promise.all([
+    // Total collected this term
     Payment.aggregate([
-      { $match: { ...baseMatch, createdAt: { $gte: monthStart, $lt: monthEnd } } },
+      { $match: termMatch },
       { $group: { _id: null, totalAmount: { $sum: '$amount' }, count: { $sum: 1 } } },
     ]),
+    // Today's collections
     Payment.aggregate([
-      { $match: { ...baseMatch, createdAt: { $gte: dayStart, $lt: dayEnd } } },
+      { $match: { schoolId, status: PAYMENT_STATUSES.COMPLETED, createdAt: { $gte: dayStart, $lt: dayEnd } } },
       { $group: { _id: null, totalAmount: { $sum: '$amount' }, count: { $sum: 1 } } },
     ]),
-    Payment.aggregate([
-      { $match: { ...baseMatch, createdAt: { $gte: monthStart, $lt: monthEnd } } },
-      { $group: { _id: '$studentId' } },
-      { $count: 'total' },
-    ]),
-    Payment.countDocuments({
-      ...baseMatch,
-      receiptIssuedByUserId: { $exists: false },
-    }),
-    Student.countDocuments({
-      schoolId: req.user.schoolId,
-      status: STUDENT_STATUSES.ACTIVE,
-    }),
-    Payment.find(baseMatch)
+    // Receipts pending issue
+    Payment.countDocuments({ schoolId, status: PAYMENT_STATUSES.COMPLETED, receiptIssuedByUserId: { $exists: false } }),
+    // Recent payments for the ledger
+    Payment.find(termMatch)
       .sort({ createdAt: -1 })
-      .limit(8)
+      .limit(10)
       .populate('studentId', 'firstName lastName admissionNumber')
-      .select('amount method status createdAt receiptNumber receiptIssuedByUserId studentId')
+      .select('amount method status createdAt paymentDate receiptNumber studentId')
       .lean(),
+    // Fee structures for this term — one per class
+    FeeStructure.find(structureFilter).select('classId totalAmount').lean(),
+    // All active students with their class
+    Student.find({ schoolId, status: STUDENT_STATUSES.ACTIVE })
+      .select('firstName lastName admissionNumber classId')
+      .populate('classId', 'name stream')
+      .lean(),
+    // Payments per student for this term (to compute outstanding)
+    Payment.aggregate([
+      { $match: termMatch },
+      { $group: { _id: '$studentId', totalPaid: { $sum: '$amount' } } },
+    ]),
   ]);
 
-  const monthTotal = monthAgg[0]?.totalAmount ?? 0;
-  const monthPaymentsCount = monthAgg[0]?.count ?? 0;
-  const todayTotal = todayAgg[0]?.totalAmount ?? 0;
-  const todayPaymentsCount = todayAgg[0]?.count ?? 0;
-  const studentsPaidThisMonth = monthPaidStudentsAgg[0]?.total ?? 0;
-  const studentsToFollowUp = Math.max(0, totalStudents - studentsPaidThisMonth);
+  // ── Derived ──────────────────────────────────────────────────────────────────
+  const termTotal   = termAgg[0]?.totalAmount ?? 0;
+  const todayTotal  = todayAgg[0]?.totalAmount ?? 0;
+  const todayCount  = todayAgg[0]?.count ?? 0;
+
+  // Map fee per class
+  const feeByClass = {};
+  for (const s of structures) feeByClass[s.classId?.toString()] = s.totalAmount ?? 0;
+
+  // Map total paid per student
+  const paidByStudent = {};
+  for (const p of termPaymentsByStudent) paidByStudent[p._id?.toString()] = p.totalPaid ?? 0;
+
+  // Total target = sum of each student's expected fee
+  let totalTarget = 0;
+  const defaulters = [];
+  for (const student of students) {
+    const classId  = student.classId?._id?.toString() ?? student.classId?.toString();
+    const expected = feeByClass[classId] ?? 0;
+    if (expected === 0) continue; // No fee structure for this class — skip
+    totalTarget += expected;
+    const paid        = paidByStudent[student._id?.toString()] ?? 0;
+    const outstanding = expected - paid;
+    if (outstanding > 0) {
+      defaulters.push({
+        _id:             student._id,
+        firstName:       student.firstName,
+        lastName:        student.lastName,
+        admissionNumber: student.admissionNumber,
+        classId:         student.classId,
+        outstanding,
+      });
+    }
+  }
+  defaulters.sort((a, b) => b.outstanding - a.outstanding);
 
   return sendSuccess(res, {
     summary: {
-      month,
-      year,
+      academicYear: academicYear ?? null,
+      term:         term ?? null,
+      termToDate: {
+        totalAmount:    termTotal,
+        paymentsCount:  termAgg[0]?.count ?? 0,
+      },
       today: {
-        totalAmount: todayTotal,
-        paymentsCount: todayPaymentsCount,
+        totalAmount:   todayTotal,
+        paymentsCount: todayCount,
       },
-      monthToDate: {
-        totalAmount: monthTotal,
-        paymentsCount: monthPaymentsCount,
+      termFees: {
+        totalAmount: totalTarget,
       },
-      students: {
-        totalActive: totalStudents,
-        paidThisMonth: studentsPaidThisMonth,
-        followUpCount: studentsToFollowUp,
-      },
+      defaulters: defaulters.slice(0, 50),
       unissuedReceipts,
     },
     recentPayments,
