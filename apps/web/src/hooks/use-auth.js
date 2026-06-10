@@ -71,22 +71,18 @@ export function useLogout() {
   const { logout } = useAuthStore();
   const queryClient = useQueryClient();
 
-  const handleLogout = async () => {
-    try {
-      await authApi.logout();
-    } catch {
-      // ignore — token will be cleared from localStorage regardless
-    } finally {
-      // Clear token from localStorage and same-domain cookie
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('authTokenExpiry');
-        document.cookie = 'token=; path=/; max-age=0; SameSite=Lax';
-      }
-      logout();
-      queryClient.clear();
-      window.location.href = '/login';
+  const handleLogout = () => {
+    // Clear locally and redirect immediately — no need to wait for the API
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('authTokenExpiry');
+      document.cookie = 'token=; path=/; max-age=0; SameSite=Lax';
     }
+    logout();
+    queryClient.clear();
+    window.location.href = '/login';
+    // Fire-and-forget: clears the server-side cookie on Render (non-blocking)
+    authApi.logout().catch(() => {});
   };
 
   // Return both shapes so callers can use either:
