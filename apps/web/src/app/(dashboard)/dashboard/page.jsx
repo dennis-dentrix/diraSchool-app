@@ -592,8 +592,8 @@ export default function DashboardPage() {
             <div data-tour="admin-work-queue">
               <AdminWorkQueue tasks={adminTasks} />
             </div>
-            {/* Ledger stat strip — 1 col mobile, 2 sm, 3 md, 4 lg */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3" data-tour="stats-grid">
+            {/* Ledger stat strip — always 2-col, 4-col only on very wide viewports */}
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3" data-tour="stats-grid">
               <div data-tour="staff-attendance-widget">
                 <StatCard
                   label="Today's Collections"
@@ -679,7 +679,7 @@ export default function DashboardPage() {
           {totalTarget > 0 && <CollectionProgressBar collected={totalCollected} target={totalTarget} percent={feeCollectionPct} />}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3" data-tour="stats-grid">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" data-tour="stats-grid">
           <StatCard label="Today's Collections" value={formatCurrency(feeData.todayAmount ?? 0)} hint={`${feeData.todayCount ?? 0} payments today`} tone="green" onClick={() => router.push('/fees/payments')} />
           <StatCard label="This Week" value={formatCurrency(feeData.weekAmount ?? 0)} hint="Completed payments this week" tone="blue" onClick={() => router.push('/fees/payments')} />
           <StatCard label="This Month" value={formatCurrency(feeData.monthAmount ?? 0)} hint={`${feeData.monthCount ?? 0} transactions`} tone="neutral" onClick={() => router.push('/fees/payments')} />
@@ -850,7 +850,7 @@ export default function DashboardPage() {
           <RefreshButton queryKeys={[['dashboard-summary', role]]} />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3" data-tour="stats-grid">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" data-tour="stats-grid">
           <StatCard label="Active Students" value={activeStudents} hint="Currently enrolled" tone="blue" onClick={() => router.push('/students')} />
           <StatCard label="Staff Members" value={summary?.staff?.total ?? 0} hint="Teaching and non-teaching" tone="neutral" onClick={() => router.push('/staff')} />
           <StatCard label="Today's Attendance" value={attendancePct !== null ? `${attendancePct}%` : '—'} hint={attendance.total > 0 ? `${attendance.present} present · ${attendance.absent} absent` : 'No registers submitted yet'} tone={attendancePct !== null ? (attendancePct < 85 ? 'amber' : 'green') : 'neutral'} onClick={() => router.push('/attendance')} />
@@ -969,7 +969,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3" data-tour="stats-grid">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" data-tour="stats-grid">
         <StatCard label="My Class" value={myClass ? myClass.fullName : '—'} hint={myClass ? `${myClass.studentCount} active students` : 'Not assigned as class teacher'} tone="blue" onClick={() => router.push('/students')} />
         <StatCard label="Today's Lessons" value={todaySlots.length} hint={todaySlots.length > 0 ? `First at ${todaySlots[0].startTime}` : 'No lessons scheduled today'} tone={todaySlots.length > 0 ? 'neutral' : 'neutral'} onClick={() => router.push('/timetable')} />
         <StatCard label="Attendance" value={att ? `${att.percent ?? 0}%` : (myClass ? 'Pending' : '—')} hint={att ? `${att.present}/${att.total} present` : (myClass ? 'Register not taken yet' : 'No class assigned')} tone={!att ? 'amber' : att.percent >= 90 ? 'green' : att.percent >= 75 ? 'amber' : 'red'} onClick={() => router.push('/attendance')} />

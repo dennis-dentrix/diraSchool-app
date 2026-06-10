@@ -70,7 +70,7 @@ export function StatCard({
       {/* Label row */}
       <div className="flex items-center gap-1.5 mb-2">
         <span className={cn('inline-block h-1.5 w-1.5 rounded-full shrink-0', dot)} />
-        <p className="text-[11px] font-medium text-muted-foreground truncate leading-none">
+        <p className="flex-1 min-w-0 text-[11px] font-medium text-muted-foreground truncate leading-none">
           {resolvedLabel}
         </p>
         {badge != null && (

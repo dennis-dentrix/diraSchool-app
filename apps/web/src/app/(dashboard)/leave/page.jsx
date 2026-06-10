@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Umbrella, Plus, Loader2, Trash2 } from 'lucide-react';
 import { leaveApi, getErrorMessage } from '@/lib/api';
+import { useAuthStore } from '@/store/auth.store';
 import { formatDate } from '@/lib/utils';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -169,9 +171,21 @@ function ApplyDialog({ open, onClose }) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
+const TEACHER_ROLES = ['teacher', 'department_head'];
+
 export default function LeavePage() {
+  const router      = useRouter();
+  const { user }    = useAuthStore();
   const queryClient = useQueryClient();
   const [applyOpen, setApplyOpen] = useState(false);
+
+  useEffect(() => {
+    if (user && TEACHER_ROLES.includes(user.role)) {
+      router.replace('/dashboard');
+    }
+  }, [user, router]);
+
+  if (user && TEACHER_ROLES.includes(user.role)) return null;
 
   const { data: balanceData, isLoading: loadingBalances } = useQuery({
     queryKey: ['leave-balances'],
