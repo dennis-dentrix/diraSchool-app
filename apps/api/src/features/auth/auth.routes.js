@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import {
   registerSchool,
   login,
+  googleAuth,
   logout,
   getMe,
   updateMe,
@@ -48,6 +49,7 @@ const authLimiter =
 // ── Public routes ─────────────────────────────────────────────────────────────
 router.post('/register', authLimiter, validateRegisterSchool, registerSchool);
 router.post('/login', authLimiter, validateLogin, login);
+router.post('/google', authLimiter, googleAuth);
 router.post('/forgot-password', authLimiter, validateForgotPassword, forgotPassword);
 router.post('/reset-password/:token', authLimiter, validateResetPassword, resetPassword);
 router.post('/accept-invite/:token', authLimiter, validateAcceptInvite, acceptInvite);

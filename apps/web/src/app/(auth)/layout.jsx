@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { BrandLogo } from '@/components/shared/brand-logo';
+import { GoogleAuthProvider } from '@/components/providers/google-oauth-provider';
 
 export const metadata = {
   title: {
@@ -31,9 +32,11 @@ export default function AuthLayout({ children }) {
       {/* Form column */}
       <div className="flex-1 flex items-center justify-center px-6 py-20">
         <div className="w-full max-w-[360px]">
-          <Suspense fallback={null}>
-            {children}
-          </Suspense>
+          <GoogleAuthProvider>
+            <Suspense fallback={null}>
+              {children}
+            </Suspense>
+          </GoogleAuthProvider>
         </div>
       </div>
 

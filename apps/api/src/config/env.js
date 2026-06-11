@@ -167,6 +167,8 @@ export const env = {
         .map((ip) => ip.trim())
         .filter(Boolean)
     : [],
+  // Google OAuth — set GOOGLE_CLIENT_ID to enable "Sign in with Google"
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || null,
   isProduction: process.env.NODE_ENV === 'production',
   isDevelopment: process.env.NODE_ENV === 'development',
 };

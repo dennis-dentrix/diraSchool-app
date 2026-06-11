@@ -239,6 +239,58 @@ export const login = asyncHandler(async (req, res) => {
 });
 
 /**
+ * POST /api/v1/auth/google
+ * Exchanges a Google OAuth access token for a Diraschool JWT.
+ * Calls Google's userinfo endpoint to verify the token and get the email,
+ * then finds the matching active user. Does NOT create new accounts.
+ * Public route — no auth required.
+ */
+export const googleAuth = asyncHandler(async (req, res) => {
+  const { accessToken } = req.body;
+  if (!accessToken) return sendError(res, 'Google access token is required.', 400);
+  if (!env.GOOGLE_CLIENT_ID) return sendError(res, 'Google login is not configured.', 503);
+
+  // Verify the token and get the user's email from Google
+  const googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!googleRes.ok) return sendError(res, 'Invalid or expired Google token.', 401);
+
+  const { email, email_verified } = await googleRes.json();
+  if (!email || !email_verified) return sendError(res, 'Google account email is not verified.', 401);
+
+  const user = await User.findOne({ email: email.toLowerCase(), isActive: true });
+  if (!user) {
+    return sendError(
+      res,
+      'No Diraschool account found for this Google email. Contact your school admin.',
+      404
+    );
+  }
+
+  if (user.invitePending) {
+    return sendError(res, 'Your account setup is incomplete. Check your email for an invitation link.', 403);
+  }
+
+  user.lastLoginAt = new Date();
+  // Mark email as verified via Google if it wasn't already
+  if (!user.emailVerified) { user.emailVerified = true; }
+  await user.save({ validateBeforeSave: false });
+
+  const token = signToken(user._id);
+  attachCookie(res, token);
+
+  const authUser = await buildAuthUser(user);
+
+  logAction(
+    { user, ip: req.ip, headers: req.headers },
+    { action: 'login', resource: 'Auth', meta: { method: 'google' } }
+  );
+
+  return sendSuccess(res, { user: authUser, token, mustChangePassword: user.mustChangePassword });
+});
+
+/**
  * POST /api/v1/auth/logout
  * Clears the JWT cookie.
  * Protected route.
