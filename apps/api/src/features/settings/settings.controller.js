@@ -153,8 +153,8 @@ export const uploadSchoolLogo = asyncHandler(async (req, res) => {
     { schoolId },
     {
       $set: {
-        logo: upload.url,
-        logoPublicId: upload.publicId ?? undefined,
+        logo: upload.publicId,
+        logoPublicId: upload.publicId,
       },
     },
     { upsert: true, new: true, runValidators: true }

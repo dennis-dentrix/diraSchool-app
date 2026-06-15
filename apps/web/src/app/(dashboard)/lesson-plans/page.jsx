@@ -14,6 +14,8 @@ import { useSchoolTermDefaults } from '@/hooks/use-school-term-defaults';
 import { formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/shared/page-header';
+import { PrivateImage } from '@/components/shared/private-image';
+import { PrivateLink } from '@/components/shared/private-link';
 import { Button }   from '@/components/ui/button';
 import { Badge }    from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -335,7 +337,7 @@ function ImageCarousel({ images, title, open, onClose, startIndex = 0 }) {
       <DialogContent className="max-w-3xl p-3 bg-transparent border-none shadow-none">
         <DialogTitle className="sr-only">{title}</DialogTitle>
         <div className="relative">
-          <img src={images[current]?.url} alt={`${title} — page ${current + 1}`}
+          <PrivateImage src={images[current]?.url} alt={`${title} — page ${current + 1}`}
             className="w-full max-h-[80vh] object-contain rounded" />
           {total > 1 && (
             <>
@@ -432,18 +434,9 @@ function PlanDetailPane({ plan, currentUser, onShare, onDelete }) {
           )}
           {plan.pdfUrl && (
             <Button size="sm" variant="outline" className="h-8 text-xs gap-1 border-ok/30 text-ok hover:bg-ok/8" asChild>
-              <a
-                href={plan.pdfUrl}
-                download={[
-                  'lesson_plan',
-                  cls?.replace(/\s+/g, '_'),
-                  subject?.replace(/\s+/g, '_'),
-                  plan.term?.replace(/\s+/g, '_'),
-                  plan.academicYear,
-                ].filter(Boolean).join('_') + '.pdf'}
-              >
+              <PrivateLink fileKey={plan.pdfUrl}>
                 <Download className="h-3.5 w-3.5" /> PDF
-              </a>
+              </PrivateLink>
             </Button>
           )}
           {admin && (
@@ -508,7 +501,7 @@ function PlanDetailPane({ plan, currentUser, onShare, onDelete }) {
                   onClick={() => { setLightboxIdx(idx); setLightboxOpen(true); }}
                   className="relative rounded-lg overflow-hidden border aspect-[3/4] hover:opacity-90 transition-opacity group"
                 >
-                  <img src={img.url} alt={`Page ${idx + 1}`} className="w-full h-full object-cover" />
+                  <PrivateImage src={img.url} alt={`Page ${idx + 1}`} className="w-full h-full object-cover" />
                   <span className="absolute bottom-1.5 left-1.5 text-[10px] bg-black/50 text-white rounded px-1.5 py-0.5">
                     {idx + 1}
                   </span>

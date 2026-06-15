@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { PrivateImage } from '@/components/shared/private-image';
 
 const CONFIRM_INIT = { open: false, holidayId: null };
 
@@ -273,7 +274,7 @@ export default function SettingsPage() {
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Brand Preview</p>
           <div className="inline-flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
             {data?.logo ? (
-              <img src={data.logo} alt="logo" className="h-5 w-5 rounded object-contain" />
+              <PrivateImage src={data.logo} alt="logo" className="h-5 w-5 rounded object-contain" />
             ) : (
               <div className="h-5 w-5 rounded bg-muted-foreground/20 flex items-center justify-center">
                 <Building2 className="h-3 w-3 text-muted-foreground" />
@@ -375,7 +376,7 @@ export default function SettingsPage() {
           <div className="space-y-3">
             {data?.logo ? (
               <div className="w-20 h-20 border rounded-lg flex items-center justify-center bg-white p-2 shadow-sm">
-                <img src={data.logo} alt="School logo" className="max-w-full max-h-full object-contain" />
+                <PrivateImage src={data.logo} alt="School logo" className="max-w-full max-h-full object-contain" />
               </div>
             ) : (
               <div className="w-20 h-20 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/30">

@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PrivateImage } from '@/components/shared/private-image';
 
 // ── Status pill ────────────────────────────────────────────────────────────────
 function StatusPill({ status }) {
@@ -187,7 +188,7 @@ export default function ReportCardsPage() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2.5">
                         {s?.photo ? (
-                          <img src={s.photo} alt={`${s.firstName} ${s.lastName}`} className="w-7 h-7 rounded-full object-cover border shrink-0" />
+                          <PrivateImage src={s.photo} alt={`${s.firstName} ${s.lastName}`} className="w-7 h-7 rounded-full object-cover border shrink-0" />
                         ) : s ? (
                           <div className="w-7 h-7 rounded-full bg-muted text-foreground text-xs font-bold flex items-center justify-center shrink-0">
                             {s.firstName?.[0]}{s.lastName?.[0]}

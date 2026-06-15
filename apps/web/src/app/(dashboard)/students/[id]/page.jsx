@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { PrivateImage } from '@/components/shared/private-image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -454,8 +455,7 @@ export default function StudentDetailPage() {
         </Button>
         <div className="w-12 h-12 rounded-full overflow-hidden bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center shrink-0">
           {student?.photo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={student.photo} alt="Student" className="w-full h-full object-cover" />
+            <PrivateImage src={student.photo} alt="Student" className="w-full h-full object-cover" />
           ) : (
             `${student?.firstName?.[0] ?? ''}${student?.lastName?.[0] ?? ''}`
           )}

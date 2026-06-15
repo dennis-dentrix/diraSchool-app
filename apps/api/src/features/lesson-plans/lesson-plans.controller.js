@@ -70,7 +70,7 @@ export const uploadLessonPlan = asyncHandler(async (req, res) => {
     )
   );
 
-  const images = uploadedImages.filter(Boolean).map((u) => ({ url: u.url, publicId: u.publicId }));
+  const images = uploadedImages.filter(Boolean).map((u) => ({ url: u.publicId, publicId: u.publicId }));
 
   if (files.length > 0 && images.length === 0) {
     return sendError(res, 'File storage is not configured. Please contact your system administrator.', 503);
@@ -89,8 +89,8 @@ export const uploadLessonPlan = asyncHandler(async (req, res) => {
         resource_type: 'raw',
         format: 'pdf',
       });
-      if (pdfUpload?.url) {
-        pdfUrl = pdfUpload.url;
+      if (pdfUpload?.publicId) {
+        pdfUrl = pdfUpload.publicId;
         pdfPublicId = pdfUpload.publicId;
         pdfStatus = 'ready';
       } else {

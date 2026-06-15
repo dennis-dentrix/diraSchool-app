@@ -14,7 +14,7 @@ import ReportCard from '../../features/report-cards/ReportCard.model.js';
 import School from '../../features/schools/School.model.js';
 import SchoolSettings from '../../features/settings/SchoolSettings.model.js';
 import { renderReportCardPdf } from '../helpers/renderReportCardPdf.js';
-import { uploadBuffer } from '../helpers/r2Upload.js';
+import { uploadBuffer, getFileBuffer } from '../helpers/r2Upload.js';
 import logger from '../../config/logger.js';
 import { notifyUser } from '../../utils/notify.js';
 
@@ -56,9 +56,10 @@ export const processReportJob = async (job) => {
     const settings = await SchoolSettings.findOne({ schoolId }).select('logo motto principalName physicalAddress');
 
     // 2. Render PDF
+    const logoBuffer = settings?.logo ? await getFileBuffer(settings.logo).catch(() => null) : null;
     const pdfBuffer = await renderReportCardPdf(reportCard, {
       schoolName,
-      logoUrl: settings?.logo,
+      logoBuffer,
       motto: settings?.motto,
       principalName: settings?.principalName,
       phone: school?.phone,
@@ -84,18 +85,18 @@ export const processReportJob = async (job) => {
     });
 
     // 4. Persist URL (null if Cloudinary is not configured — URL stored when configured later)
-    if (upload?.url) {
+    if (upload?.publicId) {
       await ReportCard.updateOne(
         { _id: reportCardId },
         {
-          pdfUrl: upload.url,
-          pdfPublicId: upload.publicId ?? publicId,
+          pdfUrl: upload.publicId,
+          pdfPublicId: upload.publicId,
           pdfStatus: 'ready',
           pdfGeneratedAt: new Date(),
           pdfError: undefined,
         }
       );
-      logger.info('[Report] PDF uploaded to Cloudinary', { jobId: job.id, url: upload.url });
+      logger.info('[Report] PDF uploaded to R2', { jobId: job.id, key: upload.publicId });
       await notifyUser({
         schoolId,
         userId: requestedByUserId,

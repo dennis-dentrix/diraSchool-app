@@ -26,6 +26,7 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { PrivateImage } from '@/components/shared/private-image';
 
 const today      = new Date().toISOString().split('T')[0];
 const minDobDate = '1990-01-01';
@@ -666,7 +667,7 @@ export default function StudentsPage() {
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-2.5">
                           {s.photo ? (
-                            <img src={s.photo} alt="" className="w-8 h-8 rounded-full object-cover border shrink-0" />
+                            <PrivateImage src={s.photo} alt="" className="w-8 h-8 rounded-full object-cover border shrink-0" />
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center shrink-0 border border-primary/15 uppercase">
                               {s.firstName?.[0]}{s.lastName?.[0]}
@@ -744,7 +745,7 @@ export default function StudentsPage() {
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <div className="flex items-center gap-2.5 flex-1 min-w-0">
                       {s.photo ? (
-                        <img src={s.photo} alt="" className="w-10 h-10 rounded-full object-cover border shrink-0" />
+                        <PrivateImage src={s.photo} alt="" className="w-10 h-10 rounded-full object-cover border shrink-0" />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center shrink-0 border border-primary/15 uppercase">
                           {s.firstName?.[0]}{s.lastName?.[0]}

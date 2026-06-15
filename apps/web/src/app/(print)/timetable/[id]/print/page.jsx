@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import { Loader2, Printer, X } from 'lucide-react';
 import { timetableApi, schoolsApi, settingsApi } from '@/lib/api';
+import { useSignedUrl } from '@/hooks/use-signed-url';
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
 const BREAK_MARKER = '__BREAK__';
@@ -104,7 +105,7 @@ export default function TimetablePrintPage() {
     : '—';
 
   const schoolName = school?.name ?? settings?.schoolName ?? 'School';
-  const logoUrl    = settings?.logo ?? '';
+  const logoUrl    = useSignedUrl(settings?.logo ?? null);
   const motto      = settings?.motto ?? '';
   const contact    = [school?.phone, school?.email].filter(Boolean).join(' · ');
   const address    = settings?.physicalAddress ?? school?.address ?? '';

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Loader2, Printer, X } from 'lucide-react';
 import { feesApi, schoolsApi, settingsApi } from '@/lib/api';
 import { formatDate, formatCurrency, capitalize } from '@/lib/utils';
+import { useSignedUrl } from '@/hooks/use-signed-url';
 
 // Shared style for any element that has a background colour that must survive print.
 const printBg = { WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' };
@@ -88,6 +89,8 @@ export default function PaymentReceiptPrintPage() {
     }
   }, [issuedPayment]);
 
+  const schoolLogo  = useSignedUrl(settings?.logo ?? null);
+
   if (isLoading || !payment || issuingReceipt) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 text-muted-foreground">
@@ -116,7 +119,6 @@ export default function PaymentReceiptPrintPage() {
     ? `${receipt.classId.name}${receipt.classId.stream ? ` ${receipt.classId.stream}` : ''}`
     : '—';
   const schoolName  = school?.name ?? settings?.schoolName ?? 'School';
-  const schoolLogo  = settings?.logo ?? null;
   const schoolAddr  = [school?.address, school?.county].filter(Boolean).join(', ');
   const schoolPhone = school?.phone ?? '';
 
@@ -154,6 +156,7 @@ export default function PaymentReceiptPrintPage() {
         @page { size: A5; margin: 10mm 12mm; }
         @media print {
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          html, body { height: auto !important; min-height: 0 !important; overflow: visible !important; }
           .no-print { display: none !important; }
           .screen-wrap { padding: 0 !important; background: white !important; min-height: unset !important; }
           #receipt-root {

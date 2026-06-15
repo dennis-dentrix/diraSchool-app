@@ -1,4 +1,5 @@
 import { getDocumentHeaderData } from '@/lib/document-print';
+import { useSignedUrl } from '@/hooks/use-signed-url';
 
 export function SchoolDocumentHeader({
   school,
@@ -9,13 +10,14 @@ export function SchoolDocumentHeader({
   generatedAt,
 }) {
   const data = getDocumentHeaderData({ school, settings, title, subtitle, serial, generatedAt });
+  const logoUrl = useSignedUrl(data.logoUrl || null);
 
   return (
     <div className="border rounded-md px-4 py-3 mb-3">
       <div className="flex items-start gap-3">
-        {data.logoUrl && (
+        {logoUrl && (
           <img
-            src={data.logoUrl}
+            src={logoUrl}
             alt="School logo"
             className="h-14 w-14 object-contain border rounded-md p-1 bg-white"
           />

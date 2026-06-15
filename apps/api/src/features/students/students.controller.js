@@ -666,7 +666,7 @@ export const uploadStudentPhoto = asyncHandler(async (req, res) => {
     );
   }
 
-  student.photo = upload.url;
+  student.photo = upload.publicId;
   student.wasNew = false;
   await student.save();
 

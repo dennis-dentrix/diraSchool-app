@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { PrivateImage } from '@/components/shared/private-image';
 
 // ── Child Selector ────────────────────────────────────────────────────────────
 function ChildSelector({ children, selected, onSelect }) {
@@ -43,7 +44,7 @@ function ChildSelector({ children, selected, onSelect }) {
             >
               <div className="flex items-start gap-2">
                 {child.photo ? (
-                  <img
+                  <PrivateImage
                     src={child.photo}
                     alt={`${child.firstName} ${child.lastName}`}
                     className="w-8 h-8 rounded-full object-cover border shrink-0"

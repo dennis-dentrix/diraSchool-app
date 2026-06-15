@@ -4,6 +4,7 @@ export const metadata = {
   title: 'Privacy Policy — DiraSchool',
   description: 'How DiraSchool collects, uses, and protects data for Kenyan CBC schools. Compliant with the Kenya Data Protection Act, 2019.',
   alternates: { canonical: 'https://diraschool.com/privacy' },
+  robots: { index: false, follow: false },
 };
 
 const EFFECTIVE_DATE = '7 May 2026';

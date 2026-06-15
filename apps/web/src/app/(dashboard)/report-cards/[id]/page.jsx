@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PrivateImage } from '@/components/shared/private-image';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -164,7 +165,7 @@ function EditPanel({
         <div className="flex items-center gap-2.5">
           {typeof student === 'object' && (
             student.photo ? (
-              <img src={student.photo} alt="" className="w-10 h-10 rounded-full object-cover border shrink-0" />
+              <PrivateImage src={student.photo} alt="" className="w-10 h-10 rounded-full object-cover border shrink-0" />
             ) : (
               <div className="w-10 h-10 rounded-full bg-muted text-foreground text-sm font-bold flex items-center justify-center shrink-0">
                 {student.firstName?.[0]}{student.lastName?.[0]}

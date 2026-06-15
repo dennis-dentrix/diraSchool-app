@@ -14,7 +14,7 @@ import PDFDocument from 'pdfkit';
 import Payment from '../../features/fees/Payment.model.js';
 import School from '../../features/schools/School.model.js';
 import SchoolSettings from '../../features/settings/SchoolSettings.model.js';
-import { uploadBuffer } from '../helpers/r2Upload.js';
+import { uploadBuffer, getFileBuffer } from '../helpers/r2Upload.js';
 import logger from '../../config/logger.js';
 
 // ── PDF renderer ──────────────────────────────────────────────────────────────
@@ -27,21 +27,12 @@ const slugifyPart = (value) =>
 
 const renderReceiptPdf = async (payment, branding) => {
   const schoolName = branding?.schoolName ?? 'School';
-  const logoUrl = branding?.logoUrl;
+  const logoBuffer = branding?.logoBuffer ?? null;
   const motto = branding?.motto ?? '';
   const address = branding?.address ?? '';
   const county = branding?.county ?? '';
   const phone = branding?.phone ?? '';
   const email = branding?.email ?? '';
-  let logoBuffer = null;
-  if (logoUrl) {
-    try {
-      const res = await fetch(logoUrl);
-      if (res.ok) logoBuffer = Buffer.from(await res.arrayBuffer());
-    } catch {
-      // non-fatal
-    }
-  }
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A5', margin: 40 });
     const chunks = [];
@@ -151,9 +142,10 @@ export const processReceiptJob = async (job) => {
   const school = await School.findById(schoolId).select('name phone email address county');
   const settings = await SchoolSettings.findOne({ schoolId }).select('logo motto physicalAddress');
 
+  const logoBuffer = settings?.logo ? await getFileBuffer(settings.logo).catch(() => null) : null;
   const pdfBuffer = await renderReceiptPdf(payment, {
     schoolName: school?.name ?? 'School',
-    logoUrl: settings?.logo,
+    logoBuffer,
     motto: settings?.motto,
     phone: school?.phone,
     email: school?.email,
@@ -174,10 +166,10 @@ export const processReceiptJob = async (job) => {
     format: 'pdf',
   });
 
-  if (upload?.url) {
-    await Payment.updateOne({ _id: paymentId }, { receiptUrl: upload.url });
-    logger.info('[Receipt] Receipt uploaded', { jobId: job.id, url: upload.url });
+  if (upload?.publicId) {
+    await Payment.updateOne({ _id: paymentId }, { receiptUrl: upload.publicId });
+    logger.info('[Receipt] Receipt uploaded to R2', { jobId: job.id, key: upload.publicId });
   }
 
-  return { paymentId, status: 'complete', receiptUrl: upload?.url ?? null };
+  return { paymentId, status: 'complete', receiptUrl: upload?.publicId ?? null };
 };

@@ -1,4 +1,5 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import sharp from 'sharp';
 import { env } from '../../config/env.js';
 
@@ -28,11 +29,34 @@ function buildKey(folder, publicId, resourceType, format) {
   return base;
 }
 
+// Returns the object key — bucket is private, use getSignedFileUrl to serve files
 function buildUrl(key) {
-  // R2_PUBLIC_URL — custom domain or R2.dev public bucket URL (recommended)
-  if (env.R2_PUBLIC_URL) return `${env.R2_PUBLIC_URL}/${key}`;
-  // Fallback: direct account endpoint (requires bucket to have public access enabled)
-  return `${env.R2_ENDPOINT}/${env.R2_BUCKET}/${key}`;
+  return key;
+}
+
+/**
+ * Generate a short-lived signed URL for a private R2 object.
+ * @param {string} key — R2 object key (as returned by uploadBuffer)
+ * @param {number} expiresIn — seconds until expiry (default 900 = 15 min)
+ */
+export async function getSignedFileUrl(key, expiresIn = 900) {
+  if (!isConfigured() || !key) return null;
+  const command = new GetObjectCommand({ Bucket: env.R2_BUCKET, Key: key });
+  return getSignedUrl(getClient(), command, { expiresIn });
+}
+
+/**
+ * Download an R2 object and return its content as a Buffer.
+ * Use this server-side instead of fetch() on a signed URL.
+ * @param {string} key — R2 object key
+ */
+export async function getFileBuffer(key) {
+  if (!isConfigured() || !key) return null;
+  const command = new GetObjectCommand({ Bucket: env.R2_BUCKET, Key: key });
+  const response = await getClient().send(command);
+  const chunks = [];
+  for await (const chunk of response.Body) chunks.push(chunk);
+  return Buffer.concat(chunks);
 }
 
 /**
@@ -70,8 +94,7 @@ export async function uploadBuffer(buffer, options = {}) {
     Body: body,
     ContentType: contentType,
     ContentDisposition: contentDisposition,
-    // R2 does not support S3 ACLs — public access is controlled at the bucket level in the dashboard
-    CacheControl: 'public, max-age=31536000, immutable',
+    CacheControl: 'private, max-age=0',
   }));
 
   return { url: buildUrl(key), publicId: key };

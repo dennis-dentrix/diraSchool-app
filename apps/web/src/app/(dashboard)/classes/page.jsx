@@ -34,6 +34,8 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SkeletonList } from '@/components/shared/skeleton-list';
 import { useRouter } from 'next/navigation';
+import { PrivateImage } from '@/components/shared/private-image';
+import { PrivateLink } from '@/components/shared/private-link';
 
 const schema = z.object({
   name: z.string().min(1, 'Required'),
@@ -508,7 +510,7 @@ export default function ClassesPage() {
                           <div key={plan._id} className="rounded-lg border overflow-hidden">
                             {firstImg ? (
                               <div className="relative">
-                                <img src={firstImg.url} alt={plan.title} className="w-full h-28 object-cover bg-muted" />
+                                <PrivateImage src={firstImg.url} alt={plan.title} className="w-full h-28 object-cover bg-muted" />
                                 {plan.images.length > 1 && (
                                   <span className="absolute bottom-1 right-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded-full">
                                     {plan.images.length} pages
@@ -534,14 +536,14 @@ export default function ClassesPage() {
                               </div>
                               <div className="flex items-center gap-2 pt-1">
                                 {firstImg && (
-                                  <a href={firstImg.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline">
+                                  <PrivateLink fileKey={firstImg.url} className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline">
                                     <Eye className="h-3 w-3" /> View
-                                  </a>
+                                  </PrivateLink>
                                 )}
                                 {plan.pdfUrl && (
-                                  <a href={plan.pdfUrl} download className="inline-flex items-center gap-1 text-[11px] text-ok hover:underline">
+                                  <PrivateLink fileKey={plan.pdfUrl} className="inline-flex items-center gap-1 text-[11px] text-ok hover:underline">
                                     <Download className="h-3 w-3" /> Download PDF
-                                  </a>
+                                  </PrivateLink>
                                 )}
                               </div>
                             </div>

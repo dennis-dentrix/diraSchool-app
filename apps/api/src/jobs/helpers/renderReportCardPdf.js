@@ -4,7 +4,7 @@
  * @param {Object} reportCard  — fully populated ReportCard mongoose doc
  * @param {Object} options
  * @param {string} options.schoolName  — display name of the school
- * @param {string} [options.logoUrl]   — school logo URL
+ * @param {Buffer} [options.logoBuffer] — school logo as a pre-fetched buffer
  * @param {string} [options.motto]     — school motto
  * @param {string} [options.principalName] — principal name
  * @param {string} [options.phone]     — school phone
@@ -47,15 +47,7 @@ export const renderReportCardPdf = async (reportCard, options = {}) => {
   const county = options.county ?? '';
   const documentSerial = reportCard.documentSerial ?? fallbackSerial(reportCard);
 
-  let logoBuffer = null;
-  if (options.logoUrl) {
-    try {
-      const res = await fetch(options.logoUrl);
-      if (res.ok) logoBuffer = Buffer.from(await res.arrayBuffer());
-    } catch {
-      // non-fatal, continue without logo
-    }
-  }
+  const logoBuffer = options.logoBuffer ?? null;
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: MARGIN, autoFirstPage: true });

@@ -7,6 +7,7 @@ import { Loader2 } from 'lucide-react';
 import { reportCardsApi, settingsApi, schoolsApi } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { SchoolDocumentHeader } from '@/components/shared/school-document-header';
+import { PrivateImage } from '@/components/shared/private-image';
 
 const GRADE_LABELS = {
   EE: 'Exceeds Expectation',
@@ -134,7 +135,7 @@ export default function ReportCardPrintPage() {
               </td>
               <td className="w-24 p-1 align-middle text-center" rowSpan={3}>
                 {typeof student === 'object' && student.photo ? (
-                  <img
+                  <PrivateImage
                     src={student.photo}
                     alt={`${student.firstName} ${student.lastName}`}
                     style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '6px', margin: '0 auto' }}
