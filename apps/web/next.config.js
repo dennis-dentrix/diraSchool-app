@@ -25,6 +25,13 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // Redirect www → non-www so Google only indexes one canonical version
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.diraschool.com' }],
+        destination: 'https://diraschool.com/:path*',
+        permanent: true,
+      },
       // /favicon.ico doesn't exist as a file — redirect to the generated icon
       { source: '/favicon.ico', destination: '/icon', permanent: false },
     ];

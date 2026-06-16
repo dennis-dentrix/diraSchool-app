@@ -6,6 +6,7 @@ import {
   Smartphone, Zap, X, ChevronRight,
 } from 'lucide-react';
 import LandingFAQ from './_components/LandingFAQ';
+import { MarketingFooter } from '@/components/marketing/marketing-footer';
 
 export const metadata = {
   title: 'DiraSchool — CBC School Management for Kenyan Schools',
@@ -33,6 +34,7 @@ const jsonLd = {
       '@type': 'Organization',
       '@id': 'https://diraschool.com/#org',
       name: 'DiraSchool',
+      legalName: 'Dirant Technologies Ltd',
       url: 'https://diraschool.com',
       logo: {
         '@type': 'ImageObject',
@@ -41,7 +43,17 @@ const jsonLd = {
         height: 512,
       },
       description: 'CBC school management system for Kenyan schools.',
-      address: { '@type': 'PostalAddress', addressCountry: 'KE' },
+      address: { '@type': 'PostalAddress', addressLocality: 'Nairobi', addressCountry: 'KE' },
+      contactPoint: [
+        {
+          '@type': 'ContactPoint',
+          contactType: 'customer support',
+          email: 'admin@diraschool.com',
+          telephone: '+254115879589',
+          availableLanguage: ['English', 'Swahili'],
+          areaServed: 'KE',
+        },
+      ],
     },
     {
       '@type': 'SoftwareApplication',
@@ -53,20 +65,76 @@ const jsonLd = {
       publisher: { '@id': 'https://diraschool.com/#org' },
       description:
         'Complete CBC school management system for Kenyan schools including attendance, report cards, fee management, and parent portal.',
-      offers: {
-        '@type': 'Offer',
-        price: '12000',
-        priceCurrency: 'KES',
-        description: 'KES 12,000 base fee per term plus KES 55 per enrolled student, plus 16% VAT',
-      },
+      offers: [
+        {
+          '@type': 'Offer',
+          name: 'Base platform fee',
+          price: '12000',
+          priceCurrency: 'KES',
+          description: 'KES 12,000 base fee per term plus KES 55 per enrolled student, plus 16% VAT',
+        },
+        {
+          '@type': 'Offer',
+          name: 'Free Trial',
+          price: '0',
+          priceCurrency: 'KES',
+          description: '30-day free trial with full feature access. No credit card required.',
+        },
+      ],
       featureList: [
-        'CBC Report Card Generation',
-        'Digital Attendance Tracking',
-        'Fee Management',
-        'Parent Portal',
-        'Staff Management',
+        'CBC Report Card Generation — 4-level rubric across all 7 learning areas',
+        'M-Pesa C2B auto-reconciliation — payments matched to student accounts in real time',
+        'Digital Attendance Tracking with parent SMS alerts',
+        'Parent Portal — real-time access to fees, results, and report cards',
+        'Fee Management with M-Pesa, bank transfer, and cash payment tracking',
+        'Staff Management with 8 role-based permission levels',
         'Timetable Management',
         'Transport Management',
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'Is DiraSchool built for the CBC curriculum?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Yes — every feature is designed around CBC. Report cards cover all 7 learning areas with the correct grade descriptors (Exceeds, Meets, Approaches, Below). Attendance, timetable, and subject management all align with CBC structure.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'How does pricing work?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'You pay KES 12,000 base fee plus KES 55 per enrolled student per term, plus 16% VAT. Annual billing saves 10% and multi-year billing saves 15%. No hidden charges beyond the published formula.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Can parents see their children\'s results and fees?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: "Yes. The parent portal gives guardians real-time access to their child's attendance record, exam results, fee balances, and published report cards. Parents log in with their own credentials — no app download needed.",
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'How long does setup take?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Most schools are fully set up in under a day. You can import students via CSV, invite staff by email, and set up classes and subjects in minutes. Our onboarding guide walks you through each step.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Is the 30-day trial really free?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Yes — full access to every feature, unlimited students, no credit card required. At the end of your trial, your data is retained for 14 days while you decide to continue.',
+          },
+        },
       ],
     },
   ],
@@ -83,6 +151,7 @@ function MarketingNav() {
         </Link>
         <div className="hidden sm:flex items-center gap-6 text-sm text-[#5c6b60]">
           <Link href="/pricing" className="hover:text-[#1a2e1e] transition-colors">Pricing</Link>
+          <Link href="/blog" className="hover:text-[#1a2e1e] transition-colors">Blog</Link>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
@@ -640,7 +709,7 @@ function FinalCTA() {
             Start your free trial <ArrowRight className="h-4 w-4" />
           </Link>
           <a
-            href="mailto:contact@diraschool.com"
+            href="mailto:admin@diraschool.com"
             className="text-white/60 hover:text-white transition-colors text-sm"
           >
             Questions? Email us →
@@ -693,8 +762,8 @@ function AboutSection() {
             </p>
             <p className="text-[#7a9080] text-xs pt-1">
               Questions?{' '}
-              <a href="mailto:contact@diraschool.com" className="text-[#1f5b5e] hover:text-[#1a4e51] transition-colors underline underline-offset-2">
-                contact@diraschool.com
+              <a href="mailto:admin@diraschool.com" className="text-[#1f5b5e] hover:text-[#1a4e51] transition-colors underline underline-offset-2">
+                admin@diraschool.com
               </a>
             </p>
           </div>
@@ -704,55 +773,6 @@ function AboutSection() {
   );
 }
 
-// ── Footer ─────────────────────────────────────────────────────────────────────
-function Footer() {
-  return (
-    <footer className="bg-[#0d1f10] border-t border-white/8 py-12 px-4 sm:px-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 pb-10 border-b border-white/8">
-          <div className="col-span-2 sm:col-span-1">
-            <div className="flex items-center gap-2.5 mb-4">
-              <BrandLogo className="w-7 h-7" />
-              <span className="text-white font-bold text-sm">Diraschool</span>
-            </div>
-            <p className="text-white/40 text-xs leading-relaxed max-w-[200px]">
-              CBC school management for Kenyan schools.
-            </p>
-          </div>
-          <div>
-            <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-4">Product</p>
-            <ul className="space-y-2.5 text-xs text-white/40">
-              {[['Features', '#'], ['Pricing', '/pricing'], ['Start Free Trial', '/register']].map(([label, href]) => (
-                <li key={label}><Link href={href} className="hover:text-white transition-colors">{label}</Link></li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-4">Account</p>
-            <ul className="space-y-2.5 text-xs text-white/40">
-              {[['Sign in', '/login'], ['Register school', '/register'], ['Forgot password', '/forgot-password']].map(([label, href]) => (
-                <li key={label}><Link href={href} className="hover:text-white transition-colors">{label}</Link></li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-4">Contact</p>
-            <ul className="space-y-2.5 text-xs text-white/40">
-              <li><a href="mailto:contact@diraschool.com" className="hover:text-white transition-colors">contact@diraschool.com</a></li>
-            </ul>
-          </div>
-        </div>
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/30">
-          <p>© {new Date().getFullYear()} DiraSchool. Built in Kenya 🇰🇪</p>
-          <div className="flex gap-4">
-            <Link href="/privacy" className="hover:text-white/60 transition-colors">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-white/60 transition-colors">Terms of Service</Link>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
-}
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
@@ -774,8 +794,8 @@ export default function LandingPage() {
         <FAQSection />
         <AboutSection />
         <FinalCTA />
-        <Footer />
       </div>
+      <MarketingFooter />
     </>
   );
 }
