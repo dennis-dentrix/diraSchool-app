@@ -14,7 +14,7 @@ import {
   Trash2,
   Scale,
 } from 'lucide-react';
-import { adminApi, getErrorMessage } from '@/lib/api';
+import { adminApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -152,7 +152,7 @@ function ExpenseForm() {
       setForm((f) => ({ ...f, title: '', vendor: '', amount: '', vatAmount: '', paymentMethod: '', reference: '', receiptUrl: '', notes: '' }));
       qc.invalidateQueries({ queryKey: ['admin-finance'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   return (
@@ -305,7 +305,7 @@ function TaxForm() {
       }));
       qc.invalidateQueries({ queryKey: ['admin-finance'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   return (
@@ -542,7 +542,7 @@ export default function SuperadminFinancePage() {
       toast.success('Expense deleted');
       qc.invalidateQueries({ queryKey: ['admin-finance'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const deleteTax = useMutation({
@@ -551,7 +551,7 @@ export default function SuperadminFinancePage() {
       toast.success('Tax record deleted');
       qc.invalidateQueries({ queryKey: ['admin-finance'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const summary = summaryData?.summary ?? {};

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import { settingsApi, getErrorMessage } from '@/lib/api';
+import { settingsApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -30,7 +30,7 @@ export function AddEventButton({ size = 'sm', variant = 'outline', label = 'Add 
       setOpen(false);
       setForm({ name: '', date: '', description: '' });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const handleOpen = () => {

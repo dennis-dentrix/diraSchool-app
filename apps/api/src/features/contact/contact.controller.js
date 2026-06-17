@@ -4,8 +4,9 @@ import {
 } from '../../services/email.service.js';
 import SchoolInquiry from './SchoolInquiry.model.js';
 import logger from '../../config/logger.js';
+import asyncHandler from '../../utils/asyncHandler.js';
 
-export const submitContactForm = async (req, res) => {
+export const submitContactForm = asyncHandler(async (req, res) => {
   const { firstName, lastName, email, phone, schoolName, message } = req.body;
 
   const missing = ['firstName', 'lastName', 'email', 'phone', 'schoolName'].filter(
@@ -38,4 +39,4 @@ export const submitContactForm = async (req, res) => {
     success: true,
     message: 'Your request has been sent. We will be in touch within 24 hours.',
   });
-};
+});

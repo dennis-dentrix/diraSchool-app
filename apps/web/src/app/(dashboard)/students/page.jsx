@@ -7,7 +7,7 @@ import { Plus, Search, Upload, MoreHorizontal, ChevronDown, ChevronUp, Download,
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { studentsApi, feesApi, exportApi, downloadBlob, classesApi, getErrorMessage } from '@/lib/api';
+import { studentsApi, feesApi, exportApi, downloadBlob, classesApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { useClasses } from '@/hooks/use-app-queries';
 import { useAuthStore } from '@/store/auth.store';
 import { formatDate, capitalize, studentStatusStyle } from '@/lib/utils';
@@ -259,7 +259,7 @@ export default function StudentsPage() {
       setShowGuardian(false);
       reset({ enrollmentDate: today, guardians: [{ relationship: 'mother' }] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: withdrawStudent } = useMutation({
@@ -269,7 +269,7 @@ export default function StudentsPage() {
       queryClient.invalidateQueries({ queryKey: ['students'] });
       queryClient.invalidateQueries({ queryKey: ['students-status-counts'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: updateStudentName, isPending: isUpdatingName } = useMutation({
@@ -279,7 +279,7 @@ export default function StudentsPage() {
       queryClient.invalidateQueries({ queryKey: ['students'] });
       setEditNameTarget(null);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: bulkTransferStudents, isPending: isBulkTransferring } = useMutation({
@@ -302,7 +302,7 @@ export default function StudentsPage() {
       setBulkTransferNote('');
       queryClient.invalidateQueries({ queryKey: ['students'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const resetImportDialog = () => {
@@ -340,7 +340,7 @@ export default function StudentsPage() {
       setImportJobId(jobId);
       toast.success('Import queued. Processing has started.');
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   // Poll single-class import job

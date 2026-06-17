@@ -6,7 +6,7 @@ import { Menu, Bell, LogOut, Settings, Loader2, CheckCheck, UserPen, LogIn, Chec
 import { SearchDialog } from './search-dialog';
 import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient, useIsFetching } from '@tanstack/react-query';
-import { authApi, notificationsApi, checkInsApi, getErrorMessage } from '@/lib/api';
+import { authApi, notificationsApi, checkInsApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { TakeTourMenuItem } from '@/components/tour/TourTrigger';
 import { useSocketNotifications } from '@/hooks/use-socket-notifications';
 import { useAuthStore } from '@/store/auth.store';
@@ -187,7 +187,7 @@ export function Header({
       toast.success('Profile updated');
       setProfileOpen(false);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   return (

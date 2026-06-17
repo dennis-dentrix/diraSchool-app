@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Trash2, AlertTriangle, RefreshCw, Search } from 'lucide-react';
-import { adminApi, getErrorMessage } from '@/lib/api';
+import { adminApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,7 +33,7 @@ function OrphanCard() {
       setConfirmOpen(false);
       refetch();
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   return (
@@ -119,7 +119,7 @@ function SchoolPurgeCard() {
       setTarget(null);
       setConfirmText('');
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const filtered = (schools ?? []).filter((s) =>

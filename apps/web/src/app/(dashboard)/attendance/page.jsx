@@ -7,7 +7,7 @@ import {
   ClipboardCheck, ChevronRight, CheckCircle2, Clock, AlertCircle,
   BarChart3, Users, CalendarDays, Filter, UserCheck,
 } from 'lucide-react';
-import { attendanceApi, classesApi, settingsApi, getErrorMessage } from '@/lib/api';
+import { attendanceApi, classesApi, settingsApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { useClasses, useTeachers } from '@/hooks/use-app-queries';
 import { formatDate, capitalize } from '@/lib/utils';
 import { useAuthStore, isAdmin } from '@/store/auth.store';
@@ -628,7 +628,7 @@ export default function AttendancePage() {
       setSubstituteId('');
       if (newId) router.push(`/attendance/${newId}`);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   function handleTakeAttendance(classId) {

@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { MapPin, Navigation, Save, Clock, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
-import { geofenceApi, getErrorMessage } from '@/lib/api';
+import { geofenceApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -89,7 +89,7 @@ export function GeofenceSettings({ settings, canEdit }) {
       toast.success('Attendance settings saved');
       queryClient.invalidateQueries({ queryKey: ['settings'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   return (

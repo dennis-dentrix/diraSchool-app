@@ -10,7 +10,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { subjectsApi, departmentsApi, getErrorMessage } from '@/lib/api';
+import { subjectsApi, departmentsApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { useClasses, useTeachers } from '@/hooks/use-app-queries';
 import { useAuthStore, isAdmin } from '@/store/auth.store';
 import { PageHeader } from '@/components/shared/page-header';
@@ -423,13 +423,13 @@ export default function SubjectsPage() {
       setOpen(false);
       reset();
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: deleteSubject } = useMutation({
     mutationFn: (id) => subjectsApi.delete(id),
     onSuccess: () => { toast.success('Deleted'); queryClient.invalidateQueries({ queryKey: ['subjects'] }); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: assignTeachers, isPending: isAssigning } = useMutation({
@@ -439,7 +439,7 @@ export default function SubjectsPage() {
       queryClient.invalidateQueries({ queryKey: ['subjects'] });
       setAssignTarget(null);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: selfAssign, isPending: isSelfAssigning } = useMutation({
@@ -449,7 +449,7 @@ export default function SubjectsPage() {
       queryClient.invalidateQueries({ queryKey: ['my-subjects'] });
       queryClient.invalidateQueries({ queryKey: ['subjects-browse'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   // ── Department mutations ───────────────────────────────────────────────────
@@ -470,7 +470,7 @@ export default function SubjectsPage() {
       setDeptFormOpen(false);
       setEditDept(null);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: deleteDept, isPending: isDeletingDept } = useMutation({
@@ -480,7 +480,7 @@ export default function SubjectsPage() {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
       setDeleteDeptTarget(null);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: addDeptMember, isPending: isAddingMember } = useMutation({
@@ -490,7 +490,7 @@ export default function SubjectsPage() {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
       setAddMemberTarget(null);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: removeDeptMember, isPending: isRemovingMember } = useMutation({
@@ -499,7 +499,7 @@ export default function SubjectsPage() {
       toast.success('Member removed');
       queryClient.invalidateQueries({ queryKey: ['departments'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   // ── Helpers ────────────────────────────────────────────────────────────────

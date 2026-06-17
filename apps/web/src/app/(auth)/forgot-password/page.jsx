@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
-import { authApi, getErrorMessage } from '@/lib/api';
+import { authApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ export default function ForgotPasswordPage() {
   const { mutate, isPending } = useMutation({
     mutationFn: ({ email }) => authApi.forgotPassword(email),
     onSuccess: () => setSent(true),
-    onError:   (err) => toast.error(getErrorMessage(err)),
+    onError:   (err) => showApiError(err),
   });
 
   if (sent) {

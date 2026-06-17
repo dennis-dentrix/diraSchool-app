@@ -10,7 +10,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Eye, EyeOff, MailCheck } from 'lucide-react';
 import { useGoogleLogin } from '@react-oauth/google';
-import { authApi, getErrorMessage } from '@/lib/api';
+import { authApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,7 +22,7 @@ function GoogleSignInButton({ onSuccess, disabled }) {
   const { mutate } = useMutation({
     mutationFn: (accessToken) => authApi.googleLogin(accessToken),
     onSuccess: (res) => { setLoading(false); onSuccess(res); },
-    onError: (err) => { setLoading(false); toast.error(getErrorMessage(err)); },
+    onError: (err) => { setLoading(false); showApiError(err); },
   });
 
   const signIn = useGoogleLogin({
@@ -112,7 +112,7 @@ export default function LoginPage() {
       if (status === 403 && message.toLowerCase().includes('verify')) {
         setUnverifiedEmail(getValues('email'));
       } else {
-        toast.error(message);
+        showApiError(err);
       }
     },
   });

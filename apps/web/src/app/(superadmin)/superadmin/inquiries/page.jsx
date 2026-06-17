@@ -7,7 +7,7 @@ import {
   Phone, Mail, Building2, Clock, MessageSquare,
   CheckCircle2, ChevronDown, ChevronUp, Search,
 } from 'lucide-react';
-import { adminApi, getErrorMessage } from '@/lib/api';
+import { adminApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { formatDate, cn } from '@/lib/utils';
 import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,7 @@ function InquiryRow({ inquiry }) {
       queryClient.invalidateQueries({ queryKey: ['inquiries'] });
       queryClient.invalidateQueries({ queryKey: ['inquiry-stats'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const cfg = STATUS_CONFIG[inquiry.status];

@@ -7,7 +7,7 @@ import { Plus, Pencil, Trash2, UserCheck, Search } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { visitorsApi, getErrorMessage } from '@/lib/api';
+import { visitorsApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { useDebounce } from '@/hooks/use-debounce';
 import { PageHeader } from '@/components/shared/page-header';
@@ -59,7 +59,7 @@ function VisitorDialog({ open, onClose, initial }) {
       reset(EMPTY_FORM());
       onClose();
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   return (
@@ -134,7 +134,7 @@ export default function VisitorsPage() {
       qc.invalidateQueries({ queryKey: ['visitors'] });
       setDeleteTarget(null);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const visitors = data?.visitors ?? [];

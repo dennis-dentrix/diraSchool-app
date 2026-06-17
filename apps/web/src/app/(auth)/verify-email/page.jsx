@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ShieldCheck } from 'lucide-react';
-import { authApi, getErrorMessage } from '@/lib/api';
+import { authApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/button';
 
@@ -41,7 +41,7 @@ export default function VerifyEmailPage() {
       else if (user?.role === 'superadmin') router.push('/superadmin');
       else router.push('/dashboard');
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: resend, isPending: resending } = useMutation({
@@ -52,7 +52,7 @@ export default function VerifyEmailPage() {
       setDigits(['', '', '', '', '', '']);
       refs[0].current?.focus();
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   function handleDigit(index, value) {

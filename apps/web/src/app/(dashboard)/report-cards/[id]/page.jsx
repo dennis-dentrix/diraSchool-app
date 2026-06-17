@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Printer, CheckCircle, Pencil, RefreshCw, Loader2,
 } from 'lucide-react';
-import { reportCardsApi, settingsApi, schoolsApi, getErrorMessage } from '@/lib/api';
+import { reportCardsApi, settingsApi, schoolsApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -358,7 +358,7 @@ export default function ReportCardDetailPage() {
       toast.success('Remarks saved');
       queryClient.invalidateQueries({ queryKey: ['report-card', id] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: publish, isPending: publishing } = useMutation({
@@ -368,7 +368,7 @@ export default function ReportCardDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['report-card', id] });
       queryClient.invalidateQueries({ queryKey: ['report-cards'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: regenerate, isPending: regenerating } = useMutation({
@@ -381,7 +381,7 @@ export default function ReportCardDetailPage() {
       toast.success('Report card regenerated with latest results');
       queryClient.invalidateQueries({ queryKey: ['report-card', id] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   async function saveSubjectRemark(subjectId, remark) {
@@ -391,7 +391,7 @@ export default function ReportCardDetailPage() {
       toast.success('Subject remark saved');
       queryClient.invalidateQueries({ queryKey: ['report-card', id] });
     } catch (err) {
-      toast.error(getErrorMessage(err));
+      showApiError(err);
     } finally {
       setSavingSubject(null);
     }

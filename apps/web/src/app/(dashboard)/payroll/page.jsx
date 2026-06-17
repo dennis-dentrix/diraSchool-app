@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import {
   Plus, Pencil, Trash2, CheckCircle2, Wallet, Receipt, Loader2, AlertTriangle, Printer,
 } from 'lucide-react';
-import { payrollApi, getErrorMessage } from '@/lib/api';
+import { payrollApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
@@ -69,13 +69,13 @@ function GradesTab() {
   const { mutate: save, isPending: saving } = useMutation({
     mutationFn: (vals) => editing ? payrollApi.updateGrade(editing._id, vals) : payrollApi.createGrade(vals),
     onSuccess:  () => { toast.success(editing ? 'Grade updated' : 'Grade created'); invalidate(); closeDialog(); },
-    onError:    (err) => toast.error(getErrorMessage(err)),
+    onError:    (err) => showApiError(err),
   });
 
   const { mutate: remove, isPending: deleting } = useMutation({
     mutationFn: (id) => payrollApi.deleteGrade(id),
     onSuccess:  () => { toast.success('Grade deleted'); invalidate(); setDeleteTarget(null); },
-    onError:    (err) => toast.error(getErrorMessage(err)),
+    onError:    (err) => showApiError(err),
   });
 
   const handleSave = () => {
@@ -290,25 +290,25 @@ function RunsTab({ canApprove }) {
       setSelMonth(genMonth);
       setSelYear(genYear);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: approve } = useMutation({
     mutationFn: (id) => payrollApi.approveRun(id),
     onSuccess:  () => { toast.success('Payroll approved'); invalidate(); },
-    onError:    (err) => toast.error(getErrorMessage(err)),
+    onError:    (err) => showApiError(err),
   });
 
   const { mutate: markPaid } = useMutation({
     mutationFn: (id) => payrollApi.markPaid(id),
     onSuccess:  () => { toast.success('Payroll marked as paid'); invalidate(); },
-    onError:    (err) => toast.error(getErrorMessage(err)),
+    onError:    (err) => showApiError(err),
   });
 
   const { mutate: deleteRun } = useMutation({
     mutationFn: (id) => payrollApi.deleteRun(id),
     onSuccess:  () => { toast.success('Run deleted'); invalidate(); },
-    onError:    (err) => toast.error(getErrorMessage(err)),
+    onError:    (err) => showApiError(err),
   });
 
   const payslips = runDetail?.payslips ?? [];

@@ -5,10 +5,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
-import { api, getErrorMessage } from '@/lib/api';
+import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { api, parseApiError } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -26,7 +25,8 @@ const schema = z.object({
 });
 
 export default function RegisterPage() {
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted]   = useState(false);
+  const [apiError, setApiError]     = useState(null);
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
@@ -34,13 +34,13 @@ export default function RegisterPage() {
 
   const { mutate, isPending } = useMutation({
     mutationFn: (data) => api.post('/contact', data),
-    onSuccess: () => setSubmitted(true),
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onSuccess: () => { setApiError(null); setSubmitted(true); },
+    onError: (err) => setApiError(parseApiError(err)),
   });
 
   if (submitted) {
     return (
-      <div className="space-y-4 text-center py-4">
+      <div className="space-y-6 text-center py-4">
         <CheckCircle2 className="mx-auto h-12 w-12 text-green-600" />
         <div className="space-y-1">
           <h1 className="font-display text-2xl font-bold tracking-tight">Request received</h1>
@@ -48,7 +48,23 @@ export default function RegisterPage() {
             We'll be in touch within 24 hours to set up your school.
           </p>
         </div>
-        <p className="text-sm text-muted-foreground pt-2">
+
+        <div className="flex flex-col gap-2 pt-2">
+          <Link
+            href="/blog"
+            className="inline-flex items-center justify-center h-10 px-4 rounded-lg bg-foreground text-background text-sm font-semibold hover:bg-foreground/90 transition-colors"
+          >
+            Read our guides while you wait
+          </Link>
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center h-10 px-4 rounded-lg border border-input text-sm font-medium hover:bg-muted transition-colors"
+          >
+            Back to homepage
+          </Link>
+        </div>
+
+        <p className="text-sm text-muted-foreground">
           Questions?{' '}
           <a href="mailto:admin@diraschool.com" className="font-medium text-foreground hover:underline underline-offset-2">
             admin@diraschool.com
@@ -114,6 +130,16 @@ export default function RegisterPage() {
               {...register('message')}
             />
           </div>
+
+          {apiError && (
+            <div className="flex gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3.5">
+              <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium text-destructive">{apiError.title}</p>
+                <p className="text-xs text-destructive/80">{apiError.description}</p>
+              </div>
+            </div>
+          )}
 
           <Button
             type="submit"

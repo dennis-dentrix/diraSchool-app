@@ -7,7 +7,7 @@ import {
   Calendar, Plus, Pencil, Trash2, Save, X,
   CalendarDays, Users, BookOpen, Clock, AlertTriangle, Printer,
 } from 'lucide-react';
-import { timetableApi, settingsApi, getErrorMessage } from '@/lib/api';
+import { timetableApi, settingsApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { useClasses, useAllSubjects, useTeachers } from '@/hooks/use-app-queries';
 import { useAuthStore } from '@/store/auth.store';
 import { ACADEMIC_YEARS, TERMS } from '@/lib/constants';
@@ -765,7 +765,7 @@ function ClassTimetableTab({ canWrite }) {
       setPeriodPlan(DEFAULT_PERIOD_PLAN);
       setLocalSlots([]);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: saveSlots, isPending: saving } = useMutation({
@@ -779,7 +779,7 @@ function ClassTimetableTab({ canWrite }) {
       queryClient.invalidateQueries({ queryKey: ['timetables-all'] });
       setEditMode(false);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const startEdit = () => {

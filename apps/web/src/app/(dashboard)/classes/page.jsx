@@ -11,7 +11,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
-import { classesApi, lessonPlansApi, getErrorMessage } from '@/lib/api';
+import { classesApi, lessonPlansApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { useTeachers } from '@/hooks/use-app-queries';
 import { useAuthStore, isAdmin } from '@/store/auth.store';
 import { LEVEL_CATEGORIES, ACADEMIC_YEARS, TERMS } from '@/lib/constants';
@@ -180,7 +180,7 @@ export default function ClassesPage() {
       setOpen(false);
       reset({ academicYear: defaultAcademicYear, term: defaultTerm });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: updateClass, isPending: isUpdating } = useMutation({
@@ -190,7 +190,7 @@ export default function ClassesPage() {
       queryClient.invalidateQueries({ queryKey: ['classes'] });
       setEditingClass(null);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: deleteClass } = useMutation({
@@ -200,7 +200,7 @@ export default function ClassesPage() {
       queryClient.invalidateQueries({ queryKey: ['classes'] });
       setSelectedClass(null);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: promoteClass, isPending: isPromoting } = useMutation({
@@ -212,7 +212,7 @@ export default function ClassesPage() {
       setPromoteDialog(PROMOTE_INIT);
       setSelectedClass(null);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const confirm = (title, description, onConfirm) =>

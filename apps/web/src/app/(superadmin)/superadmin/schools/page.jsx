@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Search, MoreHorizontal, GraduationCap, Users, ShieldOff, ShieldCheck, AlertTriangle, CheckCircle2, Ban, Plus } from 'lucide-react';
-import { adminApi, getErrorMessage } from '@/lib/api';
+import { adminApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { PageHeader } from '@/components/shared/page-header';
 import { DataTable } from '@/components/shared/data-table';
@@ -79,7 +79,7 @@ export default function SuperadminSchoolsPage() {
       setSubOpen(false);
       setDisableTarget(null);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: createSchool, isPending: isCreating } = useMutation({
@@ -90,7 +90,7 @@ export default function SuperadminSchoolsPage() {
       setCreateOpen(false);
       setCreateForm(CREATE_FORM_INIT);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   function openSubDialog(school) {

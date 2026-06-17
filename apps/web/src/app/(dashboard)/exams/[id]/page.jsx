@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { ChevronLeft, BookOpen, ExternalLink, BarChart2 } from 'lucide-react';
-import { examsApi, resultsApi, getErrorMessage } from '@/lib/api';
+import { examsApi, resultsApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { useStudentsByClass } from '@/hooks/use-app-queries';
 import { capitalize } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -331,7 +331,7 @@ export default function ExamDetailPage() {
       toast.success('Results saved');
       queryClient.invalidateQueries({ queryKey: ['results', 'exam', id] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const isLoading = examLoading || studentsLoading;

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Umbrella, Plus, Loader2, Trash2 } from 'lucide-react';
-import { leaveApi, getErrorMessage } from '@/lib/api';
+import { leaveApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { formatDate } from '@/lib/utils';
 import { PageHeader } from '@/components/shared/page-header';
@@ -107,7 +107,7 @@ function ApplyDialog({ open, onClose }) {
       onClose();
       setForm({ leaveType: '', startDate: '', endDate: '', reason: '' });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const canSubmit = form.leaveType && form.startDate && form.endDate && form.reason.length >= 10;
@@ -212,7 +212,7 @@ export default function LeavePage() {
       queryClient.invalidateQueries({ queryKey: ['my-leaves'] });
       queryClient.invalidateQueries({ queryKey: ['leave-balances'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   return (

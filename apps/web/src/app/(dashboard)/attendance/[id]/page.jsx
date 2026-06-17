@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { CheckCircle, Save, Lock, ChevronLeft, Users } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { attendanceApi, getErrorMessage } from '@/lib/api';
+import { attendanceApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -86,7 +86,7 @@ export default function AttendanceRegisterPage() {
       toast.success('Draft saved');
       queryClient.invalidateQueries({ queryKey: ['attendance-register', id] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: submitRegister, isPending: submitting } = useMutation({
@@ -105,7 +105,7 @@ export default function AttendanceRegisterPage() {
       queryClient.invalidateQueries({ queryKey: ['attendance-past'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const updateEntry = (studentId, status) => {

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Layers, Plus, Pencil, Trash2, School, Users, ChevronRight, X } from 'lucide-react';
-import { adminApi, getErrorMessage } from '@/lib/api';
+import { adminApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -255,7 +255,7 @@ function AddSchoolDialog({ open, onOpenChange, groupId, existingSchoolIds }) {
       await qc.invalidateQueries({ queryKey: ['admin-groups'] });
       toast.success('School added to group.');
     } catch (err) {
-      toast.error(getErrorMessage(err));
+      showApiError(err);
     } finally {
       setAdding(null);
     }
@@ -329,7 +329,7 @@ function GroupCard({ group, onEdit, onDelete }) {
       await qc.invalidateQueries({ queryKey: ['admin-groups'] });
       toast.success('School removed from group.');
     } catch (err) {
-      toast.error(getErrorMessage(err));
+      showApiError(err);
     } finally {
       setRemovingId(null);
     }
@@ -456,7 +456,7 @@ export default function BillingGroupsPage() {
       qc.invalidateQueries({ queryKey: ['admin-groups'] });
       toast.success('Group created.');
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const updateMutation = useMutation({
@@ -466,7 +466,7 @@ export default function BillingGroupsPage() {
       toast.success('Group updated.');
       setEditTarget(null);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const deleteMutation = useMutation({
@@ -476,7 +476,7 @@ export default function BillingGroupsPage() {
       toast.success('Group deleted.');
       setDeleteTarget(null);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   return (

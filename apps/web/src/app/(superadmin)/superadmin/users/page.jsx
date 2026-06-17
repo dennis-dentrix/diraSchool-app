@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Search, UserCheck, UserX, MoreHorizontal } from 'lucide-react';
-import { adminApi, getErrorMessage } from '@/lib/api';
+import { adminApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { formatDate, getRoleBadgeColor } from '@/lib/utils';
 import { PageHeader } from '@/components/shared/page-header';
 import { DataTable } from '@/components/shared/data-table';
@@ -54,7 +54,7 @@ export default function SuperadminUsersPage() {
       toast.success(`User ${isActive ? 'activated' : 'deactivated'}`);
       queryClient.invalidateQueries({ queryKey: ['sa-users'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const hasFilters = debouncedSearch || roleFilter || activeFilter;

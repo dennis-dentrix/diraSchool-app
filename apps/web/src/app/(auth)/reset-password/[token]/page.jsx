@@ -9,7 +9,7 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { authApi, getErrorMessage } from '@/lib/api';
+import { authApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -39,7 +39,7 @@ export default function ResetPasswordPage() {
       toast.success('Password reset successfully. Please sign in.');
       router.push('/login');
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   return (

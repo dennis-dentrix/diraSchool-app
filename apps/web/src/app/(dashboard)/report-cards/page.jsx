@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Zap, Printer, ChevronRight, BookOpen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { reportCardsApi, getErrorMessage } from '@/lib/api';
+import { reportCardsApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { useClasses, useAllStudents } from '@/hooks/use-app-queries';
 import { capitalize } from '@/lib/utils';
 import { ACADEMIC_YEARS, TERMS } from '@/lib/constants';
@@ -85,13 +85,13 @@ export default function ReportCardsPage() {
       queryClient.invalidateQueries({ queryKey: ['report-cards'] });
       setOpen(false);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: publish } = useMutation({
     mutationFn: (id) => reportCardsApi.publish(id),
     onSuccess: () => { toast.success('Published'); queryClient.invalidateQueries({ queryKey: ['report-cards'] }); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const classes  = classesData ?? [];

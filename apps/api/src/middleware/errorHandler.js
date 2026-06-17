@@ -58,6 +58,10 @@ const errorHandler = (err, req, res, _next) => {
         schoolId: req.user?.schoolId?.toString(),
       },
     });
+    // Never expose internal error details to clients in production
+    if (process.env.NODE_ENV === 'production') {
+      message = 'An unexpected error occurred. Our team has been notified.';
+    }
   } else if (statusCode >= 400 && process.env.NODE_ENV !== 'test') {
     // 4xx: debug-level — useful for tracing bad requests without noise
     logger.debug(`${req.method} ${req.url} → ${statusCode}: ${message}`, {

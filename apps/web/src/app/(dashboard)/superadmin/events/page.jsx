@@ -6,7 +6,7 @@ import {
   Megaphone, Plus, Pencil, Trash2, Send, Calendar, CheckCircle2,
   AlertTriangle, Wrench, Zap, Info, Clock,
 } from 'lucide-react';
-import { adminApi, getErrorMessage } from '@/lib/api';
+import { adminApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -293,19 +293,19 @@ export default function SystemEventsPage() {
   const createMutation = useMutation({
     mutationFn: (form) => adminApi.createSystemEvent(form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-system-events'] }); toast.success('Event created.'); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, form }) => adminApi.updateSystemEvent(id, form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-system-events'] }); toast.success('Event updated.'); setEditTarget(null); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => adminApi.deleteSystemEvent(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-system-events'] }); toast.success('Event deleted.'); setDeleteTarget(null); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const broadcastMutation = useMutation({
@@ -315,7 +315,7 @@ export default function SystemEventsPage() {
       toast.success(res.data?.message ?? 'Broadcast sent.');
       setBroadcastTarget(null);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   return (

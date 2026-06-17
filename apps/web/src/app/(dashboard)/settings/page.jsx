@@ -7,7 +7,7 @@ import {
   Upload, MapPin, Building2, CreditCard, BookOpen, AlertTriangle, Info,
 } from 'lucide-react';
 import { useState } from 'react';
-import { settingsApi, schoolsApi, smsApi, mpesaApi, getErrorMessage } from '@/lib/api';
+import { settingsApi, schoolsApi, smsApi, mpesaApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { GeofenceSettings } from '@/components/settings/GeofenceSettings';
 import { useAuthStore } from '@/store/auth.store';
 import { ACADEMIC_YEARS } from '@/lib/constants';
@@ -126,61 +126,61 @@ export default function SettingsPage() {
   const { mutate: saveProfile, isPending: savingProfile } = useMutation({
     mutationFn: (d) => schoolsApi.updateMe(d),
     onSuccess: () => { toast.success('School profile saved'); queryClient.invalidateQueries({ queryKey: ['school-me'] }); setEditingProfile(false); setProfileForm(null); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: saveInfo, isPending: savingInfo } = useMutation({
     mutationFn: () => settingsApi.update({ principalName: infoForm.principalName, motto: infoForm.motto, physicalAddress: infoForm.physicalAddress, currentAcademicYear: infoForm.currentAcademicYear }),
     onSuccess: () => { toast.success('School information saved'); queryClient.invalidateQueries({ queryKey: ['settings'] }); setEditingInfo(false); setInfoForm(null); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: saveTerms, isPending: savingTerms } = useMutation({
     mutationFn: () => settingsApi.update({ terms: termsForm.filter((t) => t.startDate && t.endDate).map((t) => ({ name: t.name, startDate: t.startDate, endDate: t.endDate })) }),
     onSuccess: () => { toast.success('Term dates saved'); queryClient.invalidateQueries({ queryKey: ['settings'] }); setEditingTerms(false); setTermsForm(null); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: saveMpesa, isPending: savingMpesa } = useMutation({
     mutationFn: () => schoolsApi.updateMe({ mpesaTillNumber: mpesaForm.provider === 'mpesa' ? mpesaForm.phoneNumber : '', paymentSmsSettings: { enabled: !!mpesaForm.enabled, provider: mpesaForm.provider, phoneNumber: mpesaForm.phoneNumber, bankName: mpesaForm.provider === 'bank' ? mpesaForm.bankName : '' } }),
     onSuccess: () => { toast.success('Payment SMS configuration saved'); queryClient.invalidateQueries({ queryKey: ['school-me'] }); setEditingMpesa(false); setMpesaForm(null); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: saveDaraja, isPending: savingDaraja } = useMutation({
     mutationFn: () => mpesaApi.updateSettings({ paybill: darajaForm.paybill.trim() }),
     onSuccess: () => { toast.success('M-Pesa Paybill saved'); queryClient.invalidateQueries({ queryKey: ['mpesa-settings'] }); setEditingDaraja(false); setDarajaForm(null); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: connectDaraja, isPending: connectingDaraja } = useMutation({
     mutationFn: () => { if (!schoolId) throw new Error('School account is not loaded yet.'); return mpesaApi.registerC2B(schoolId); },
     onSuccess: (res) => { toast.success(res.data?.message ?? 'M-Pesa connected'); queryClient.invalidateQueries({ queryKey: ['mpesa-settings'] }); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: uploadLogo, isPending: uploadingLogo } = useMutation({
     mutationFn: () => { if (!logoFile) throw new Error('Select a logo file first.'); const fd = new FormData(); fd.append('logo', logoFile); return settingsApi.uploadLogo(fd); },
     onSuccess: () => { toast.success('Logo uploaded'); setLogoFile(null); queryClient.invalidateQueries({ queryKey: ['settings'] }); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: requestSenderId, isPending: requestingSenderId } = useMutation({
     mutationFn: () => smsApi.requestSenderId(senderIdForm.trim().toUpperCase()),
     onSuccess: () => { toast.success('Sender ID request submitted — awaiting approval'); setSenderIdForm(''); queryClient.invalidateQueries({ queryKey: ['school-me'] }); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: addHoliday, isPending: addingHoliday } = useMutation({
     mutationFn: () => settingsApi.addHoliday(newHoliday),
     onSuccess: () => { toast.success('Event added'); queryClient.invalidateQueries({ queryKey: ['settings'] }); setNewHoliday({ name: '', date: '', description: '' }); setShowAddEvent(false); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: deleteHoliday } = useMutation({
     mutationFn: (id) => settingsApi.deleteHoliday(id),
     onSuccess: () => { toast.success('Event removed'); queryClient.invalidateQueries({ queryKey: ['settings'] }); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: addCalendarEvent, isPending: addingCalEvent } = useMutation({
@@ -191,13 +191,13 @@ export default function SettingsPage() {
       setNewCalEvent({ name: '', eventType: 'custom', date: '', endDate: '', description: '' });
       setShowAddCalEvent(false);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: deleteCalendarEvent } = useMutation({
     mutationFn: (id) => settingsApi.deleteCalendarEvent(id),
     onSuccess: () => { toast.success('Event removed'); queryClient.invalidateQueries({ queryKey: ['settings'] }); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: requestDeactivation, isPending: requestingDeactivation } = useMutation({
@@ -212,7 +212,7 @@ export default function SettingsPage() {
         billingAcknowledged: false,
       });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   // ── Derived state ──────────────────────────────────────────────────────────

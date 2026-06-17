@@ -8,7 +8,7 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { authApi, getErrorMessage } from '@/lib/api';
+import { authApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -49,7 +49,7 @@ export default function AcceptInvitePage() {
       toast.success('Account activated! Welcome.');
       router.push('/dashboard');
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   return (

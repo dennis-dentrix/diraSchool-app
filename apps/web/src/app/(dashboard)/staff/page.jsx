@@ -13,7 +13,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { usersApi, leaveApi, checkInsApi, getErrorMessage } from '@/lib/api';
+import { usersApi, leaveApi, checkInsApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { ROLE_LABELS } from '@/lib/constants';
 import { formatDate } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
@@ -117,7 +117,7 @@ function LeaveActionDialog({ leave, action, onClose }) {
       onClose();
       setComment('');
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const isReject  = action === 'reject';
@@ -572,24 +572,24 @@ export default function StaffPage() {
   const { mutate: createUser,   isPending: creating }   = useMutation({
     mutationFn: (data) => usersApi.create(data),
     onSuccess:  () => { toast.success('Staff member invited via email'); queryClient.invalidateQueries({ queryKey: ['users'] }); setOpen(false); reset(); },
-    onError:    (err) => toast.error(getErrorMessage(err)),
+    onError:    (err) => showApiError(err),
   });
-  const { mutate: resendInvite  } = useMutation({ mutationFn: (id) => usersApi.resendInvite(id),   onSuccess: () => toast.success('Invite resent'),                 onError: (err) => toast.error(getErrorMessage(err)) });
-  const { mutate: resetPassword } = useMutation({ mutationFn: (id) => usersApi.resetPassword(id), onSuccess: () => toast.success('Password reset email sent'),     onError: (err) => toast.error(getErrorMessage(err)) });
+  const { mutate: resendInvite  } = useMutation({ mutationFn: (id) => usersApi.resendInvite(id),   onSuccess: () => toast.success('Invite resent'),                 onError: (err) => showApiError(err) });
+  const { mutate: resetPassword } = useMutation({ mutationFn: (id) => usersApi.resetPassword(id), onSuccess: () => toast.success('Password reset email sent'),     onError: (err) => showApiError(err) });
   const { mutate: toggleActive  } = useMutation({
     mutationFn: ({ id, isActive, reason }) => usersApi.toggleActive(id, isActive, reason),
     onSuccess: (_, { isActive }) => { toast.success(isActive ? 'Account reactivated' : 'Account paused'); queryClient.invalidateQueries({ queryKey: ['users'] }); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
   const { mutate: updateUser, isPending: updatingUser } = useMutation({
     mutationFn: ({ id, data }) => usersApi.update(id, data),
     onSuccess:  () => { toast.success('User details updated'); queryClient.invalidateQueries({ queryKey: ['users'] }); setEditTarget(null); },
-    onError:    (err) => toast.error(getErrorMessage(err)),
+    onError:    (err) => showApiError(err),
   });
   const { mutate: deleteUser, isPending: deletingUser } = useMutation({
     mutationFn: (id) => usersApi.delete(id),
     onSuccess:  () => { toast.success('User deleted'); queryClient.invalidateQueries({ queryKey: ['users'] }); setDeleteTarget(null); },
-    onError:    (err) => toast.error(getErrorMessage(err)),
+    onError:    (err) => showApiError(err),
   });
 
   const handleConfirmPause = () => {

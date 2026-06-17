@@ -8,7 +8,7 @@ import {
   CheckCircle2, AlertCircle, Loader2, School, Search, X, FlaskConical,
   Sparkles, Wallet,
 } from 'lucide-react';
-import { smsApi, classesApi, studentsApi, usersApi, getErrorMessage } from '@/lib/api';
+import { smsApi, classesApi, studentsApi, usersApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -185,7 +185,7 @@ function SingleMessageTab() {
       toast.success('Message queued — will be delivered shortly');
       setForm({ to: '', message: '' });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const valid = form.to.trim().length >= 7 && form.message.trim().length > 0 && form.message.length <= MAX_CHARS;
@@ -266,7 +266,7 @@ function BroadcastTab() {
       setForm({ target: '', classId: '', message: '' });
       queryClient.invalidateQueries({ queryKey: ['sms-history'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const targets = [
@@ -430,7 +430,7 @@ function FeeReminderTab() {
       toast.success(`Fee reminders queued for ${recipientCount} SMS covering ${studentsWithBalance} student${studentsWithBalance !== 1 ? 's' : ''}`);
       queryClient.invalidateQueries({ queryKey: ['sms-history'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const needsClass = form.target === 'class_students';

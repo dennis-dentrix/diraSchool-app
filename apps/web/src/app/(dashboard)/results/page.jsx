@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Save, BookOpen, ChevronDown } from 'lucide-react';
-import { resultsApi, getErrorMessage } from '@/lib/api';
+import { resultsApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { useClasses, useSubjectsByClass, useStudentsByClass } from '@/hooks/use-app-queries';
 import { EXAM_TYPES, ACADEMIC_YEARS, TERMS } from '@/lib/constants';
 import { useSchoolTermDefaults } from '@/hooks/use-school-term-defaults';
@@ -306,7 +306,7 @@ export default function ResultsPage() {
       queryClient.invalidateQueries({ queryKey: ['results', 'session', classId, examType, term, academicYear] });
       setEditing(false);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const selectedClass = classes.find((c) => c._id === classId);

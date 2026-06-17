@@ -8,7 +8,7 @@ import { ArrowLeft, Pencil, UserPlus, Trash2, Printer, TrendingUp, MoveRight } f
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { studentsApi, feesApi, attendanceApi, classesApi, getErrorMessage } from '@/lib/api';
+import { studentsApi, feesApi, attendanceApi, classesApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { useAuthStore, isAdmin } from '@/store/auth.store';
 import { formatDate, formatCurrency, getStatusColor, capitalize } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -340,7 +340,7 @@ export default function StudentDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['student', id] });
       setEditOpen(false);
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
   const { mutate: uploadPhoto, isPending: uploadingPhoto } = useMutation({
     mutationFn: async () => {
@@ -355,7 +355,7 @@ export default function StudentDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['student', id] });
       queryClient.invalidateQueries({ queryKey: ['students'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: transferStudentToClass, isPending: transferring } = useMutation({
@@ -368,7 +368,7 @@ export default function StudentDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['student', id] });
       queryClient.invalidateQueries({ queryKey: ['students'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const openEdit = () => {

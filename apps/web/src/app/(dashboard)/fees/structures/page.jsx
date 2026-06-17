@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Plus, Trash2, Printer, Copy, Pencil, Layers, Check, X } from 'lucide-react';
 import { useForm, useFieldArray } from 'react-hook-form';
-import { feesApi, schoolsApi, getErrorMessage } from '@/lib/api';
+import { feesApi, schoolsApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { useClasses } from '@/hooks/use-app-queries';
 import { buildDocumentHeaderHtml, getDocumentHeaderCss, getDocumentHeaderData } from '@/lib/document-print';
 import { formatCurrency } from '@/lib/utils';
@@ -290,13 +290,13 @@ export default function FeeStructuresPage() {
         items: [{ category: 'School Fees', name: 'Tuition Fee', amount: '' }, { category: 'School Fees', name: 'Admission Fee (One Time)', amount: '' }],
       });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: deleteStructure } = useMutation({
     mutationFn: (id) => feesApi.deleteStructure(id),
     onSuccess: () => { toast.success('Deleted'); queryClient.invalidateQueries({ queryKey: ['fee-structures'] }); setSelectedId(null); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: updateStructure, isPending: updating } = useMutation({
@@ -311,7 +311,7 @@ export default function FeeStructuresPage() {
       setEditingStructure(null);
       resetEdit({ notes: '', items: [{ category: 'School Fees', name: '', amount: '' }] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: adaptStructures, isPending: adapting } = useMutation({
@@ -326,7 +326,7 @@ export default function FeeStructuresPage() {
       queryClient.invalidateQueries({ queryKey: ['fee-structures'] });
       setAdaptOpen(false); setAdaptOverwrite(false); setAdaptClassId('');
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const structures = data?.data ?? [];

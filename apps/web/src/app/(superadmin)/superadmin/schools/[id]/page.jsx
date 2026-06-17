@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, MessageSquare, ShieldOff, XCircle } from 'lucide-react';
-import { adminApi, studentsApi, getErrorMessage } from '@/lib/api';
+import { adminApi, studentsApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -92,7 +92,7 @@ export default function SchoolDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['sa-school', id] });
       queryClient.invalidateQueries({ queryKey: ['sa-schools-list'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: updatePricing, isPending: pricingPending } = useMutation({
@@ -102,7 +102,7 @@ export default function SchoolDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['sa-school', id] });
       queryClient.invalidateQueries({ queryKey: ['sa-schools-list'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: reviewDeactivationRequest, isPending: reviewingDeactivation } = useMutation({
@@ -113,7 +113,7 @@ export default function SchoolDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['sa-school', id] });
       queryClient.invalidateQueries({ queryKey: ['sa-schools-list'] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const [senderIdForm, setSenderIdForm] = useState({ approvedId: '', rejectionReason: '' });
@@ -124,7 +124,7 @@ export default function SchoolDetailPage() {
       setSenderIdForm({ approvedId: '', rejectionReason: '' });
       queryClient.invalidateQueries({ queryKey: ['sa-school', id] });
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   if (isLoading) return (

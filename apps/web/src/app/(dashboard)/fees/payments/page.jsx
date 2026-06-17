@@ -10,7 +10,7 @@ import { z } from 'zod';
 import {
   feesApi, exportApi, settingsApi, schoolsApi,
   downloadBlob, getErrorMessage,
-} from '@/lib/api';
+,  showApiError } from '@/lib/api';
 import { useClasses, useAllStudents } from '@/hooks/use-app-queries';
 import { formatCurrency, formatDate, capitalize } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -205,7 +205,7 @@ function RecordPaymentPanel({ open, onClose, settingsData, schoolData, studentsD
       onSuccess?.();
       handleClose();
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const handleClose = () => {

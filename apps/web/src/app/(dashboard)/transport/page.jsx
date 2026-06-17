@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Plus, Bus, MoreHorizontal, Pencil, Users, Trash2, UserPlus, X, GripVertical, Search, Printer, Eye } from 'lucide-react';
-import { transportApi, studentsApi, schoolsApi, settingsApi, feesApi, getErrorMessage } from '@/lib/api';
+import { transportApi, studentsApi, schoolsApi, settingsApi, feesApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { buildDocumentHeaderHtml, getDocumentHeaderCss, getDocumentHeaderData, escapeHtml } from '@/lib/document-print';
 import { useAuthStore, isAdmin } from '@/store/auth.store';
 import { PageHeader } from '@/components/shared/page-header';
@@ -161,7 +161,7 @@ function AssignStudentsDialog({ open, onClose, route }) {
       queryClient.invalidateQueries({ queryKey: ['transport-route-detail'] });
       onClose();
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const toggle = (id) => setSelected((prev) => {
@@ -396,19 +396,19 @@ export default function TransportPage() {
   const { mutate: createRoute, isPending: creating } = useMutation({
     mutationFn: () => transportApi.createRoute(cleanForm(createForm, createStops)),
     onSuccess: () => { toast.success('Route created'); queryClient.invalidateQueries({ queryKey: ['transport-routes'] }); setCreateOpen(false); setCreateForm(ROUTE_FORM_INIT); setCreateStops([]); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: updateRoute, isPending: updating } = useMutation({
     mutationFn: () => transportApi.updateRoute(editTarget._id, cleanForm(editForm, editStops)),
     onSuccess: () => { toast.success('Route updated'); queryClient.invalidateQueries({ queryKey: ['transport-routes'] }); setEditTarget(null); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const { mutate: deleteRoute } = useMutation({
     mutationFn: (id) => transportApi.deleteRoute(id),
     onSuccess: () => { toast.success('Route deleted'); queryClient.invalidateQueries({ queryKey: ['transport-routes'] }); },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err) => showApiError(err),
   });
 
   const openEdit = (route) => {
