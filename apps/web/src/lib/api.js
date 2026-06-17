@@ -109,14 +109,11 @@ export function parseApiError(error) {
   if (!axios.isAxiosError(error)) {
     return {
       title: error?.message || "Something went wrong",
-      description: "Try again. Contact admin@diraschool.com if the problem persists.",
+      description: "Try again or contact admin@diraschool.com if the problem persists.",
     };
   }
 
-  const status = error.response?.status;
-  const serverMessage = error.response?.data?.message;
-
-  // Network / connectivity
+  // Network / connectivity — no response at all
   if (!error.response) {
     return {
       title: "Connection failed",
@@ -124,56 +121,70 @@ export function parseApiError(error) {
     };
   }
 
-  switch (status) {
-    case 400:
+  const status = error.response?.status;
+  const serverMessage = error.response?.data?.message;
+
+  // Always prefer the server's own message — it's specific and already human-readable.
+  // Only fall back to a generic description when the server didn't send one.
+  if (serverMessage) {
+    if (status >= 500) {
       return {
-        title: serverMessage || "Invalid request",
-        description: "Check the information you entered and try again.",
+        title: serverMessage,
+        description: "Our team has been notified. Contact admin@diraschool.com if this continues.",
       };
-    case 401:
+    }
+    if (status === 429) {
       return {
-        title: "Session expired",
-        description: "Sign in again to continue where you left off.",
+        title: serverMessage,
+        description: "Wait a few minutes before trying again.",
       };
-    case 403:
+    }
+    if (status === 503 || status === 502 || status === 504) {
       return {
-        title: "Access denied",
-        description: "You don't have permission to do this. Contact your school administrator if you think this is a mistake.",
-      };
-    case 404:
-      return {
-        title: "Not found",
-        description: "The item may have been moved or deleted. Refresh the page and try again.",
-      };
-    case 409:
-      return {
-        title: serverMessage || "Already exists",
-        description: "This record already exists. Check your entries or contact support.",
-      };
-    case 429:
-      return {
-        title: "Too many attempts",
-        description: "You've made too many requests. Wait a few minutes and try again.",
-      };
-    case 502:
-    case 503:
-    case 504:
-      return {
-        title: "Service unavailable",
+        title: serverMessage,
         description: "DiraSchool is temporarily unavailable. Try again in a moment.",
       };
-    default:
-      if (status >= 500) {
-        return {
-          title: "Something went wrong on our end",
-          description: "Our team has been notified. Contact admin@diraschool.com if this continues.",
-        };
-      }
-      return {
-        title: serverMessage || "Something went wrong",
-        description: "Try again. Contact admin@diraschool.com if the problem persists.",
-      };
+    }
+    // 400, 401, 403, 404, 409, and any other 4xx — show the server message as-is
+    return { title: serverMessage, description: "" };
   }
+
+  // No server message — use a generic fallback keyed on status range, not specific codes
+  if (status >= 500) {
+    return {
+      title: "Something went wrong on our end",
+      description: "Our team has been notified. Contact admin@diraschool.com if this continues.",
+    };
+  }
+  if (status === 503 || status === 502 || status === 504) {
+    return {
+      title: "Service unavailable",
+      description: "DiraSchool is temporarily unavailable. Try again in a moment.",
+    };
+  }
+  if (status === 429) {
+    return {
+      title: "Too many attempts",
+      description: "Wait a few minutes before trying again.",
+    };
+  }
+  if (status === 403) {
+    return {
+      title: "Access denied",
+      description: "You don't have permission to do this. Contact your school administrator.",
+    };
+  }
+  if (status === 404) {
+    return {
+      title: "Not found",
+      description: "This item may have been deleted. Refresh and try again.",
+    };
+  }
+  // Generic 4xx fallback
+  return {
+    title: "Request failed",
+    description: "Something wasn't right with that request. Try again.",
+  };
 }
 
 export function showApiError(error) {
