@@ -143,7 +143,7 @@ export default async function BlogArticlePage({ params }) {
               href="/register"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#1f5b5e] hover:bg-[#1a4e51] text-white font-semibold text-sm shadow-md transition-all"
             >
-              Start free trial <ArrowRight className="h-4 w-4" />
+              Get started <ArrowRight className="h-4 w-4" />
             </Link>
             <a
               href="mailto:admin@diraschool.com"

@@ -135,6 +135,6 @@ DiraSchool was built for CBC primary schools in Kenya. Not retrofitted from a sy
 
 M-Pesa payments match to student accounts automatically. Reports print in Swahili as easily as English. The system runs offline. Our support team is in Nairobi.
 
-**Pricing:** KES 12,000 base fee per term plus KES 55 per active student, billed at term start when you're already collecting fees. 30-day free trial, no credit card required.
+**Pricing:** KES 12,000 base fee per term plus KES 55 per active student, billed at term start when you're already collecting fees. Request access and we'll have you set up within 24 hours.
 
-[Start your free trial →](/register)
+[Get started — request access →](/register)

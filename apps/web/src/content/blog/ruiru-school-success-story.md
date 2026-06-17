@@ -115,4 +115,4 @@ What I didn't expect was what it did for my confidence. When a parent asks about
 
 *This school is a real DiraSchool customer in Ruiru, Kiambu County. Details withheld at their request. Fee recovery figures come from the school's own records comparing Term 3 2023 with Terms 1–3 2024.*
 
-[See what DiraSchool can do for your school — 30-day free trial →](/register)
+[See what DiraSchool can do for your school — request access →](/register)

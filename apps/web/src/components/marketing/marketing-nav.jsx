@@ -24,7 +24,7 @@ export function MarketingNav() {
             href="/register"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1f5b5e] hover:bg-[#1a4e51] text-white text-sm font-semibold shadow-sm transition-all duration-150 active:scale-[0.98] hidden sm:inline-flex"
           >
-            Start free trial
+            Get started
           </Link>
         </div>
       </div>

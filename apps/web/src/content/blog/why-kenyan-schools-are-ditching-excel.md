@@ -106,4 +106,4 @@ The question is what the current system costs. In staff hours, lost fee income, 
 
 Schools that switch don't regret switching. They regret not switching sooner.
 
-[Start your free 30-day trial — no credit card →](/register)
+[Get started — request access →](/register)

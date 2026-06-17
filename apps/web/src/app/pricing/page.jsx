@@ -128,7 +128,7 @@ function PricingNav() {
             href="/register"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1f5b5e] hover:bg-[#1a4e51] text-white text-sm font-semibold shadow-sm transition-all duration-150 active:scale-[0.98]"
           >
-            Start free trial
+            Get started
           </Link>
         </div>
       </div>
@@ -173,7 +173,7 @@ function Hero() {
             href="/register"
             className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[#1f5b5e] hover:bg-[#1a4e51] text-white font-semibold shadow-lg shadow-[#1f5b5e]/25 transition-all duration-150 active:scale-[0.98] text-base"
           >
-            Start 30-day free trial <ArrowRight className="h-4 w-4" />
+            Get started <ArrowRight className="h-4 w-4" />
           </Link>
           <a
             href="#calculator"
@@ -278,7 +278,7 @@ function PricingTable() {
                 )}
 
                 <Link
-                  href={plan.custom ? 'mailto:contact@diraschool.com' : '/register'}
+                  href={plan.custom ? 'mailto:admin@diraschool.com' : '/register'}
                   className={cn(
                     'mt-5 w-full inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-semibold transition-all',
                     plan.highlight
@@ -459,7 +459,7 @@ function PriceCalculator() {
                 href="/register"
                 className="mt-6 w-full inline-flex items-center justify-center px-4 py-3 rounded-xl bg-[#1f5b5e] hover:bg-[#1a4e51] text-white font-semibold text-sm transition-all"
               >
-                Start free trial — no credit card
+                Get started
               </Link>
             </div>
           </div>
@@ -559,12 +559,9 @@ function TrialCTA() {
       </div>
 
       <div className="relative max-w-2xl mx-auto">
-        <h2 className="text-4xl font-bold text-white tracking-tight">Start for free today</h2>
+        <h2 className="text-4xl font-bold text-white tracking-tight">Ready to get started?</h2>
         <p className="mt-4 text-white/70 text-lg">
-          Full access. All features. Unlimited students. No credit card needed.
-        </p>
-        <p className="mt-2 text-white/50 text-sm">
-          Data retained for 14 days after trial — upgrade anytime to keep everything.
+          Tell us about your school and we'll have you set up within 24 hours. Full access, all features.
         </p>
 
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -572,18 +569,18 @@ function TrialCTA() {
             href="/register"
             className="inline-flex items-center gap-2 px-10 py-4 rounded-xl bg-white text-[#1f5b5e] font-bold shadow-xl hover:bg-[#f7f5f0] transition-all duration-150 active:scale-[0.98] text-base"
           >
-            Start your 30-day free trial <ArrowRight className="h-4 w-4" />
+            Get started <ArrowRight className="h-4 w-4" />
           </Link>
           <a
-            href="mailto:contact@diraschool.com"
+            href="mailto:admin@diraschool.com"
             className="text-white/60 hover:text-white transition-colors text-sm"
           >
-            Talk to sales →
+            Questions? Email us →
           </a>
         </div>
 
         <div className="mt-12 flex flex-wrap justify-center gap-6 text-xs text-white/50">
-          {['30-day free trial', 'No credit card required', 'CBC-compliant reports', 'Simple receipts', 'Cancel any time'].map((t) => (
+          {['30-day free trial', 'CBC-compliant reports', 'Nairobi support', 'Unlimited students', 'Cancel any time'].map((t) => (
             <span key={t} className="flex items-center gap-1.5">
               <Check className="h-3 w-3 text-white/80" />{t}
             </span>

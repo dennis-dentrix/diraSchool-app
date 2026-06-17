@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,57 +7,56 @@ import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
-import { authApi, getErrorMessage } from '@/lib/api';
+import { CheckCircle2 } from 'lucide-react';
+import { api, getErrorMessage } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
 
 const kenyaPhoneRegex = /^(\+254|0|254)?[17]\d{8}$/;
 
 const schema = z.object({
-  schoolName:  z.string().min(3, 'School name must be at least 3 characters'),
-  schoolPhone: z.string().trim().regex(kenyaPhoneRegex, 'Invalid school phone (Kenyan format required)'),
-  firstName:   z.string().min(1, 'First name is required'),
-  lastName:    z.string().min(1, 'Last name is required'),
-  email:       z.string().email('Enter a valid email'),
-  phone:       z.preprocess(
-    (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
-    z.string().trim().regex(kenyaPhoneRegex, 'Invalid phone number (Kenyan format required)').optional(),
-  ),
-  password:        z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string(),
-  agreedToTerms:   z.boolean().refine((v) => v === true, { message: 'You must agree to the terms to continue' }),
-}).refine((d) => d.password === d.confirmPassword, {
-  message: "Passwords don't match",
-  path: ['confirmPassword'],
+  firstName:  z.string().min(1, 'First name is required'),
+  lastName:   z.string().min(1, 'Last name is required'),
+  schoolName: z.string().min(3, 'School name must be at least 3 characters'),
+  email:      z.string().email('Enter a valid email address'),
+  phone:      z.string().trim().regex(kenyaPhoneRegex, 'Enter a valid Kenyan phone number'),
+  message:    z.string().optional(),
 });
 
 export default function RegisterPage() {
-  const router        = useRouter();
-  const [showPwd,     setShowPwd]     = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { agreedToTerms: false },
   });
-
-  const agreedToTerms = watch('agreedToTerms');
 
   const { mutate, isPending } = useMutation({
-    mutationFn: ({ confirmPassword, agreedToTerms, ...data }) => authApi.register(data),
-    onSuccess: (res) => {
-      const email = res.data.data?.email ?? res.data.email;
-      if (!email) {
-        toast.error('Registration succeeded, but we could not read your email from the server response.');
-        return;
-      }
-      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
-    },
+    mutationFn: (data) => api.post('/contact', data),
+    onSuccess: () => setSubmitted(true),
     onError: (err) => toast.error(getErrorMessage(err)),
   });
+
+  if (submitted) {
+    return (
+      <div className="space-y-4 text-center py-4">
+        <CheckCircle2 className="mx-auto h-12 w-12 text-green-600" />
+        <div className="space-y-1">
+          <h1 className="font-display text-2xl font-bold tracking-tight">Request received</h1>
+          <p className="text-muted-foreground text-sm">
+            We'll be in touch within 24 hours to set up your school.
+          </p>
+        </div>
+        <p className="text-sm text-muted-foreground pt-2">
+          Questions?{' '}
+          <a href="mailto:admin@diraschool.com" className="font-medium text-foreground hover:underline underline-offset-2">
+            admin@diraschool.com
+          </a>
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -66,23 +64,13 @@ export default function RegisterPage() {
 
       <div className="space-y-6">
         <div className="space-y-1">
-          <h1 className="font-display text-[32px] font-bold tracking-tight leading-none">Register your school</h1>
-          <p className="text-muted-foreground text-sm">Start your free trial — no credit card required</p>
+          <h1 className="font-display text-[32px] font-bold tracking-tight leading-none">Get started</h1>
+          <p className="text-muted-foreground text-sm">
+            Tell us about your school and we'll set you up within 24 hours.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit(mutate)} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="schoolName">School name</Label>
-            <Input id="schoolName" className="h-10" placeholder="Nairobi Primary School" {...register('schoolName')} />
-            {errors.schoolName && <p className="text-xs text-bad">{errors.schoolName.message}</p>}
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="schoolPhone">School phone number</Label>
-            <Input id="schoolPhone" type="tel" className="h-10" placeholder="0712 345 678" {...register('schoolPhone')} />
-            {errors.schoolPhone && <p className="text-xs text-bad">{errors.schoolPhone.message}</p>}
-          </div>
-
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="firstName">First name</Label>
@@ -97,58 +85,34 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-1.5">
+            <Label htmlFor="schoolName">School name</Label>
+            <Input id="schoolName" className="h-10" placeholder="Nairobi Primary School" {...register('schoolName')} />
+            {errors.schoolName && <p className="text-xs text-bad">{errors.schoolName.message}</p>}
+          </div>
+
+          <div className="space-y-1.5">
             <Label htmlFor="email">Email address</Label>
             <Input id="email" type="email" className="h-10" placeholder="principal@school.ac.ke" {...register('email')} />
             {errors.email && <p className="text-xs text-bad">{errors.email.message}</p>}
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="phone">Phone <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Label htmlFor="phone">Phone number</Label>
             <Input id="phone" type="tel" className="h-10" placeholder="0712 345 678" {...register('phone')} />
+            {errors.phone && <p className="text-xs text-bad">{errors.phone.message}</p>}
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="password">Password</Label>
-            <div className="relative">
-              <Input id="password" type={showPwd ? 'text' : 'password'} className="h-10 pr-10" placeholder="Min. 8 characters" {...register('password')} />
-              <button type="button" onClick={() => setShowPwd((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-            {errors.password && <p className="text-xs text-bad">{errors.password.message}</p>}
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="confirmPassword">Confirm password</Label>
-            <div className="relative">
-              <Input id="confirmPassword" type={showConfirm ? 'text' : 'password'} className="h-10 pr-10" placeholder="••••••••" {...register('confirmPassword')} />
-              <button type="button" onClick={() => setShowConfirm((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-            {errors.confirmPassword && <p className="text-xs text-bad">{errors.confirmPassword.message}</p>}
-          </div>
-
-          <div className="space-y-1.5">
-            <div className="flex items-start gap-2.5">
-              <Checkbox
-                id="agreedToTerms"
-                checked={agreedToTerms}
-                onCheckedChange={(checked) => setValue('agreedToTerms', !!checked, { shouldValidate: true })}
-                className="mt-0.5"
-              />
-              <label htmlFor="agreedToTerms" className="text-sm text-muted-foreground leading-snug cursor-pointer select-none">
-                I agree to the{' '}
-                <Link href="/terms" target="_blank" className="font-medium text-foreground hover:underline underline-offset-2">
-                  Terms &amp; Conditions
-                </Link>
-                {' '}and{' '}
-                <Link href="/privacy" target="_blank" className="font-medium text-foreground hover:underline underline-offset-2">
-                  Privacy Policy
-                </Link>
-              </label>
-            </div>
-            {errors.agreedToTerms && <p className="text-xs text-bad">{errors.agreedToTerms.message}</p>}
+            <Label htmlFor="message">
+              Anything else we should know{' '}
+              <span className="text-muted-foreground font-normal">(optional)</span>
+            </Label>
+            <Textarea
+              id="message"
+              className="min-h-[80px] resize-none"
+              placeholder="Number of students, current system you're using, when you want to start..."
+              {...register('message')}
+            />
           </div>
 
           <Button
@@ -156,13 +120,15 @@ export default function RegisterPage() {
             className="w-full h-10 bg-foreground text-background hover:bg-foreground/90 mt-2"
             disabled={isPending}
           >
-            Create account
+            {isPending ? 'Sending...' : 'Request access'}
           </Button>
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{' '}
-          <Link href="/login" className="font-medium text-foreground hover:underline underline-offset-2">Sign in</Link>
+          <Link href="/login" className="font-medium text-foreground hover:underline underline-offset-2">
+            Sign in
+          </Link>
         </p>
       </div>
     </>

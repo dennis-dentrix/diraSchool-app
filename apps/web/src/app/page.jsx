@@ -164,7 +164,7 @@ function MarketingNav() {
             href="/register"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1f5b5e] hover:bg-[#1a4e51] text-white text-sm font-semibold shadow-sm transition-all duration-150 active:scale-[0.98] hidden sm:inline-flex"
           >
-            Start free trial
+            Get started
           </Link>
         </div>
       </div>
@@ -205,7 +205,7 @@ function Hero() {
             href="/register"
             className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[#1f5b5e] hover:bg-[#1a4e51] text-white font-semibold shadow-lg shadow-[#1f5b5e]/25 transition-all duration-150 active:scale-[0.98] text-base"
           >
-            Start free — 30 days <ArrowRight className="h-4 w-4" />
+            Get started <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
             href="/pricing"
@@ -589,7 +589,7 @@ function HowItWorks() {
     {
       n: '01',
       title: 'Register your school',
-      desc: 'Sign up in under 5 minutes. Enter your school name and details — no IT team or server setup required. Your 30-day free trial starts immediately.',
+      desc: 'Fill in your school details and submit a request. We review it and set up your account within 24 hours — no IT team or server setup required.',
     },
     {
       n: '02',
@@ -663,7 +663,7 @@ function PricingTeaser() {
               href="/register"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-white/30 text-white hover:bg-white/10 transition-all text-sm font-medium"
             >
-              Start free trial
+              Get started
             </Link>
           </div>
         </div>
@@ -699,14 +699,14 @@ function FinalCTA() {
           Your school deserves<br /> better tools
         </h2>
         <p className="mt-5 text-white/70 text-lg leading-relaxed">
-          Join Kenyan schools already running on DiraSchool. Full CBC compliance, no setup fee, 30 days free.
+          Join Kenyan schools already running on DiraSchool. Full CBC compliance, no setup fee, up and running in 24 hours.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href="/register"
             className="inline-flex items-center gap-2 px-10 py-4 rounded-xl bg-white text-[#1f5b5e] font-bold shadow-xl hover:bg-[#f7f5f0] transition-all duration-150 active:scale-[0.98] text-base"
           >
-            Start your free trial <ArrowRight className="h-4 w-4" />
+            Get started <ArrowRight className="h-4 w-4" />
           </Link>
           <a
             href="mailto:admin@diraschool.com"
@@ -716,7 +716,7 @@ function FinalCTA() {
           </a>
         </div>
         <div className="mt-10 flex flex-wrap justify-center gap-6 text-xs text-white/60">
-          {['30-day free trial', 'No credit card', 'Full CBC compliance', 'Unlimited students', 'Cancel any time'].map((t) => (
+          {['30-day free trial', 'Full CBC compliance', 'Nairobi support', 'Unlimited students', 'Cancel any time'].map((t) => (
             <span key={t} className="flex items-center gap-1.5">
               <Check className="h-3 w-3 text-white/80" />{t}
             </span>

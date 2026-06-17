@@ -90,13 +90,13 @@ export default function BlogIndexPage() {
             Ready to modernise your school?
           </h2>
           <p className="text-white/70 mb-8">
-            Join Kenyan schools already running on DiraSchool. Free 30-day trial, no credit card.
+            Join Kenyan schools already running on DiraSchool. Tell us about your school and we'll set you up within 24 hours.
           </p>
           <Link
             href="/register"
             className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-white text-[#1f5b5e] font-bold hover:bg-[#f7f5f0] transition-all shadow-lg text-sm"
           >
-            Start free trial <ArrowRight className="h-4 w-4" />
+            Get started <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </section>

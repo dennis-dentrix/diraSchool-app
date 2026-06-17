@@ -54,6 +54,7 @@ import leaveRoutes from './features/leave/leave.routes.js';
 import payrollRoutes from './features/payroll/payroll.routes.js';
 import onboardingRoutes from './features/onboarding/onboarding.routes.js';
 import fileRoutes from './features/files/files.routes.js';
+import contactRoutes from './features/contact/contact.routes.js';
 
 // ── Startup diagnostic — always runs first, visible in Railway logs ──────────
 // This prints BEFORE validateEnv() so missing vars are visible even if we crash.
@@ -217,6 +218,7 @@ app.use('/api/v1/leave',       leaveRoutes);
 app.use('/api/v1/payroll',    payrollRoutes);
 app.use('/api/v1/onboarding', onboardingRoutes);
 app.use('/api/v1/files',      fileRoutes);
+app.use('/api/v1/contact',   contactRoutes);
 
 // ── 404 catch-all ────────────────────────────────────────────────────────────
 app.use((req, res) => {
