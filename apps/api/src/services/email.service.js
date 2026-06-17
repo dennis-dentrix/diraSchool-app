@@ -1081,3 +1081,25 @@ const _senderIdReviewedTemplate = ({ schoolName, action, senderIdApproved, rejec
         </p>
       `
   );
+
+export const sendContactInquiryEmail = ({ firstName, lastName, schoolName, email, phone, message, meta = {} }) =>
+  sendEmail({
+    to: 'admin@diraschool.com',
+    subject: `New inquiry: ${schoolName} — ${firstName} ${lastName}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+        <h2 style="margin:0 0 16px;font-size:20px;color:#0d1f10">New school inquiry — DiraSchool</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <tr><td style="padding:8px 0;color:#666;width:140px">Name</td><td style="padding:8px 0;font-weight:600">${firstName} ${lastName}</td></tr>
+          <tr><td style="padding:8px 0;color:#666">School</td><td style="padding:8px 0;font-weight:600">${schoolName}</td></tr>
+          <tr><td style="padding:8px 0;color:#666">Email</td><td style="padding:8px 0"><a href="mailto:${email}">${email}</a></td></tr>
+          <tr><td style="padding:8px 0;color:#666">Phone</td><td style="padding:8px 0"><a href="tel:${phone}">${phone}</a></td></tr>
+          ${message ? `<tr><td style="padding:8px 0;color:#666;vertical-align:top">Message</td><td style="padding:8px 0">${message}</td></tr>` : ''}
+        </table>
+        <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb"/>
+        <p style="font-size:12px;color:#999;margin:0">Submitted from diraschool.com — reply directly to follow up.</p>
+      </div>
+    `,
+    template: 'contact-inquiry',
+    meta,
+  });
