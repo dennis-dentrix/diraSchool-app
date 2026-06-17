@@ -223,6 +223,10 @@ export const adminApi = {
   deleteSystemEvent: (id) => api.delete(`/admin/system-events/${id}`),
   broadcastSystemEvent: (id, data) =>
     api.post(`/admin/system-events/${id}/broadcast`, data),
+  // School inquiries
+  listInquiries: (params) => api.get('/admin/inquiries', { params }),
+  inquiryStats:  ()       => api.get('/admin/inquiries/stats'),
+  updateInquiry: (id, data) => api.patch(`/admin/inquiries/${id}`, data),
 };
 
 // ─── Classes ──────────────────────────────────────────────────────────────────

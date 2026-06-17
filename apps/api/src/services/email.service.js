@@ -1082,6 +1082,53 @@ const _senderIdReviewedTemplate = ({ schoolName, action, senderIdApproved, rejec
       `
   );
 
+export const sendContactInquiryConfirmationEmail = ({ firstName, schoolName, email, phone, meta = {} }) =>
+  sendEmail({
+    to: email,
+    subject: `We've received your request — DiraSchool`,
+    html: _shell(
+      `We've received your request — DiraSchool`,
+      `
+        <h2 style="margin:0 0 8px;font-size:22px;color:#0d1f10;font-weight:700;">
+          Thank you, ${firstName}.
+        </h2>
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.7;">
+          We've received your request to set up <strong>${schoolName}</strong> on DiraSchool.
+          Our team will review your details and reach out within <strong>24 hours</strong> to get you started.
+        </p>
+
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px;margin:0 0 24px;">
+          <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#166534;text-transform:uppercase;letter-spacing:.05em;">
+            What happens next
+          </p>
+          <ol style="margin:0;padding-left:18px;font-size:14px;color:#374151;line-height:2;">
+            <li>Our team reviews your school details</li>
+            <li>We call or email you to confirm and answer any questions</li>
+            <li>Your school account is created and you receive login instructions</li>
+            <li>We walk you through your first setup call if needed</li>
+          </ol>
+        </div>
+
+        <p style="margin:0 0 8px;font-size:14px;color:#374151;line-height:1.7;">
+          In the meantime, if you have any questions reach us directly:
+        </p>
+        <table style="font-size:14px;color:#374151;line-height:2;">
+          <tr><td style="padding-right:12px;color:#6b7280;">Email</td><td><a href="mailto:admin@diraschool.com" style="color:#1f5b5e;text-decoration:none;font-weight:600;">admin@diraschool.com</a></td></tr>
+          <tr><td style="padding-right:12px;color:#6b7280;">Phone</td><td><a href="tel:+254115879589" style="color:#1f5b5e;text-decoration:none;font-weight:600;">+254 115 879 589</a></td></tr>
+        </table>
+
+        <hr style="margin:28px 0;border:none;border-top:1px solid #e5e7eb;"/>
+
+        <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.6;">
+          You submitted this request using <strong>${email}</strong> and phone <strong>${phone}</strong>.
+          If any of these details are incorrect, reply to this email and we'll update them.
+        </p>
+      `
+    ),
+    template: 'contact-inquiry-confirmation',
+    meta,
+  });
+
 export const sendContactInquiryEmail = ({ firstName, lastName, schoolName, email, phone, message, meta = {} }) =>
   sendEmail({
     to: 'admin@diraschool.com',

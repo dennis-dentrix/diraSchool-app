@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
+import { adminApi } from '@/lib/api';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
@@ -12,6 +14,17 @@ export default function SuperadminLayout({ children }) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const { data: inquiryStats } = useQuery({
+    queryKey: ['inquiry-stats'],
+    queryFn: () => adminApi.inquiryStats().then((r) => r.data.data),
+    enabled: !!user && user.role === 'superadmin',
+    refetchInterval: 60_000,
+  });
+
+  const badges = inquiryStats?.pendingCount > 0
+    ? { '/superadmin/inquiries': inquiryStats.pendingCount }
+    : {};
 
   useEffect(() => {
     if (!isLoading && user && user.role !== 'superadmin') {
@@ -40,14 +53,14 @@ export default function SuperadminLayout({ children }) {
     <div className="flex h-dvh overflow-hidden bg-background">
       {/* Desktop sidebar */}
       <div className="hidden lg:flex">
-        <Sidebar user={user} />
+        <Sidebar user={user} badges={badges} />
       </div>
 
       {/* Mobile sidebar */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="p-0 w-64">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
-          <Sidebar user={user} onNavigate={() => setMobileOpen(false)} />
+          <Sidebar user={user} badges={badges} onNavigate={() => setMobileOpen(false)} />
         </SheetContent>
       </Sheet>
 

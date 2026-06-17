@@ -1,4 +1,8 @@
-import { sendContactInquiryEmail } from '../../services/email.service.js';
+import {
+  sendContactInquiryEmail,
+  sendContactInquiryConfirmationEmail,
+} from '../../services/email.service.js';
+import SchoolInquiry from './SchoolInquiry.model.js';
 import logger from '../../config/logger.js';
 
 export const submitContactForm = async (req, res) => {
@@ -11,12 +15,27 @@ export const submitContactForm = async (req, res) => {
     return res.status(400).json({ success: false, message: `Missing required fields: ${missing.join(', ')}` });
   }
 
-  try {
-    await sendContactInquiryEmail({ firstName, lastName, email, phone, schoolName, message, meta: { type: 'contact_form' } });
-    logger.info('[Contact] Inquiry received', { schoolName, email });
-    return res.status(200).json({ success: true, message: 'Your request has been sent. We will be in touch within 24 hours.' });
-  } catch (err) {
-    logger.error('[Contact] Failed to send inquiry email', { err });
-    return res.status(500).json({ success: false, message: 'Failed to send your request. Please email us directly at admin@diraschool.com.' });
+  const inquiry = await SchoolInquiry.create({
+    firstName, lastName, email, phone, schoolName, message: message?.trim() || '',
+  });
+
+  // Fire both emails concurrently — a failure in one does not block the other
+  const [adminResult, confirmResult] = await Promise.allSettled([
+    sendContactInquiryEmail({ firstName, lastName, schoolName, email, phone, message, meta: { inquiryId: inquiry._id.toString() } }),
+    sendContactInquiryConfirmationEmail({ firstName, schoolName, email, phone, meta: { inquiryId: inquiry._id.toString() } }),
+  ]);
+
+  if (adminResult.status === 'rejected') {
+    logger.error('[Contact] Failed to send admin notification', { err: adminResult.reason, inquiryId: inquiry._id });
   }
+  if (confirmResult.status === 'rejected') {
+    logger.error('[Contact] Failed to send confirmation to applicant', { err: confirmResult.reason, inquiryId: inquiry._id });
+  }
+
+  logger.info('[Contact] Inquiry saved', { schoolName, email, inquiryId: inquiry._id });
+
+  return res.status(200).json({
+    success: true,
+    message: 'Your request has been sent. We will be in touch within 24 hours.',
+  });
 };

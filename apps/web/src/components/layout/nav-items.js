@@ -26,6 +26,7 @@ import {
   SlidersHorizontal,
   ClipboardCheck,
   TableProperties,
+  Inbox,
 } from 'lucide-react';
 
 // Role groups
@@ -100,6 +101,7 @@ export const schoolNavItems = schoolNavGroups.flatMap((g) => g.items);
 
 export const superadminNavItems = [
   { label: 'Overview',       href: '/superadmin',              icon: LayoutDashboard },
+  { label: 'Inquiries',      href: '/superadmin/inquiries',     icon: Inbox },
   { label: 'Schools',        href: '/superadmin/schools',       icon: Building2 },
   { label: 'Trials',         href: '/superadmin/trials',        icon: Clock },
   { label: 'Billing Groups', href: '/superadmin/groups',        icon: Layers },

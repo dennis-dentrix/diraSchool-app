@@ -41,6 +41,9 @@ import {
   broadcastSystemEvent,
   getSystemSettings,
   updateSystemSettings,
+  listInquiries,
+  getInquiryStats,
+  updateInquiry,
 } from './admin.controller.js';
 
 const router = express.Router();
@@ -98,5 +101,10 @@ router.post('/system-events',                   createSystemEvent);
 router.patch('/system-events/:id',              updateSystemEvent);
 router.delete('/system-events/:id',             deleteSystemEvent);
 router.post('/system-events/:id/broadcast',     broadcastSystemEvent);
+
+// School inquiries (contact form submissions)
+router.get('/inquiries',           listInquiries);
+router.get('/inquiries/stats',     getInquiryStats);
+router.patch('/inquiries/:id',     updateInquiry);
 
 export default router;

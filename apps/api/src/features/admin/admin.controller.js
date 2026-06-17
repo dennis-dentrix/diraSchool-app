@@ -45,6 +45,7 @@ import SalaryGrade from '../payroll/SalaryGrade.model.js';
 import Leave       from '../leave/Leave.model.js';
 import Notification from '../notifications/Notification.model.js';
 import SystemEvent from './SystemEvent.model.js';
+import SchoolInquiry from '../contact/SchoolInquiry.model.js';
 import asyncHandler from '../../utils/asyncHandler.js';
 import { sendSuccess, sendError } from '../../utils/response.js';
 import { paginate } from '../../utils/pagination.js';
@@ -1776,4 +1777,55 @@ export const updateSystemSettings = asyncHandler(async (req, res) => {
   );
 
   return sendSuccess(res, { settings });
+});
+
+// ── School Inquiries ──────────────────────────────────────────────────────────
+
+export const listInquiries = asyncHandler(async (req, res) => {
+  const filter = {};
+  if (req.query.status) filter.status = req.query.status;
+
+  const total = await SchoolInquiry.countDocuments(filter);
+  const pendingCount = await SchoolInquiry.countDocuments({ status: 'pending' });
+  const { skip, limit, meta } = paginate(req.query, total);
+
+  const inquiries = await SchoolInquiry.find(filter)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .populate('reviewedBy', 'firstName lastName')
+    .lean();
+
+  return sendSuccess(res, { inquiries, pendingCount, meta });
+});
+
+export const getInquiryStats = asyncHandler(async (req, res) => {
+  const pendingCount = await SchoolInquiry.countDocuments({ status: 'pending' });
+  return sendSuccess(res, { pendingCount });
+});
+
+export const updateInquiry = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { status, notes } = req.body;
+
+  const allowed = ['pending', 'contacted', 'closed'];
+  if (status && !allowed.includes(status)) {
+    return sendError(res, `Status must be one of: ${allowed.join(', ')}`, 400);
+  }
+
+  const update = {};
+  if (status) {
+    update.status = status;
+    update.reviewedAt = new Date();
+    update.reviewedBy = req.user._id;
+  }
+  if (notes !== undefined) update.notes = notes;
+
+  const inquiry = await SchoolInquiry.findByIdAndUpdate(id, { $set: update }, { new: true })
+    .populate('reviewedBy', 'firstName lastName')
+    .lean();
+
+  if (!inquiry) return sendError(res, 'Inquiry not found', 404);
+
+  return sendSuccess(res, { inquiry });
 });
