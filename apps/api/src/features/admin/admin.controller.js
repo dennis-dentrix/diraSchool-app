@@ -46,6 +46,9 @@ import Leave       from '../leave/Leave.model.js';
 import Notification from '../notifications/Notification.model.js';
 import SystemEvent from './SystemEvent.model.js';
 import SchoolInquiry from '../contact/SchoolInquiry.model.js';
+import { generateToken, randomPassword } from '../../utils/tokens.js';
+import { withTransaction } from '../../utils/withTransaction.js';
+import { normalisePhone } from '../../utils/phone.js';
 import asyncHandler from '../../utils/asyncHandler.js';
 import { sendSuccess, sendError } from '../../utils/response.js';
 import { paginate } from '../../utils/pagination.js';
@@ -1828,4 +1831,123 @@ export const updateInquiry = asyncHandler(async (req, res) => {
   if (!inquiry) return sendError(res, 'Inquiry not found', 404);
 
   return sendSuccess(res, { inquiry });
+});
+
+export const resendInquiryInvite = asyncHandler(async (req, res) => {
+  const inquiry = await SchoolInquiry.findById(req.params.id);
+  if (!inquiry) return sendError(res, 'Inquiry not found.', 404);
+
+  const user = await User.findOne({ email: inquiry.email });
+  if (!user) return sendError(res, `No account found for ${inquiry.email}. Approve the inquiry first to create an account.`, 404);
+
+  const school = await School.findById(user.schoolId).select('name').lean();
+
+  const { raw: rawToken, hash: tokenHash } = generateToken();
+  user.inviteToken       = tokenHash;
+  user.inviteTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  user.invitePending     = true;
+  await user.save({ validateBeforeSave: false });
+
+  const inviteUrl = `${env.CLIENT_URL}/accept-invite/${rawToken}`;
+  queueEmailWithDirectFallback(
+    JOB_NAMES.SEND_NEW_SCHOOL_INVITE_EMAIL,
+    {
+      to:           user.email,
+      firstName:    user.firstName,
+      schoolName:   school?.name ?? inquiry.schoolName,
+      inviteUrl,
+      expiresInDays: 7,
+      meta: {
+        schoolId:    user.schoolId,
+        userId:      user._id,
+        flow:        'inquiry-resend-invite',
+        initiatedBy: req.user._id,
+      },
+    },
+    'Inquiry resend invite'
+  );
+
+  return sendSuccess(res, { message: `A new invitation link has been sent to ${user.email}.` });
+});
+
+export const approveInquiry = asyncHandler(async (req, res) => {
+  const inquiry = await SchoolInquiry.findById(req.params.id);
+  if (!inquiry) return sendError(res, 'Inquiry not found.', 404);
+  if (inquiry.status === 'approved') return sendError(res, 'This inquiry has already been approved.', 409);
+
+  const {
+    schoolName     = inquiry.schoolName,
+    adminFirstName = inquiry.firstName,
+    adminLastName  = inquiry.lastName,
+    adminPhone     = inquiry.phone,
+    county,
+  } = req.body;
+
+  // Always normalise email: use the submitted value or fall back to the inquiry, then lowercase + trim
+  const adminEmail = (req.body.adminEmail || inquiry.email).toLowerCase().trim();
+
+  const existingSchool = await School.findOne({ email: adminEmail });
+  if (existingSchool) return sendError(res, `A school with email "${adminEmail}" already exists. Check the Schools list.`, 409);
+
+  const existingUser = await User.findOne({ email: adminEmail });
+  if (existingUser) return sendError(res, `A user with email "${adminEmail}" already exists (role: ${existingUser.role}). It may be a leftover from a failed previous attempt — delete it from the Users list and try again.`, 409);
+
+  const { raw: rawToken, hash: tokenHash } = generateToken();
+  const expiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  const { school, admin } = await withTransaction(async (session) => {
+    const [school] = await School.create(
+      [{ name: schoolName, email: adminEmail, phone: normalisePhone(adminPhone), county }],
+      { session }
+    );
+    const [admin] = await User.create(
+      [{
+        firstName:         adminFirstName.trim(),
+        lastName:          adminLastName.trim(),
+        email:             adminEmail.toLowerCase().trim(),
+        phone:             normalisePhone(adminPhone),
+        password:          randomPassword(),
+        role:              ROLES.SCHOOL_ADMIN,
+        schoolId:          school._id,
+        invitePending:     true,
+        inviteToken:       tokenHash,
+        inviteTokenExpiry: expiry,
+        emailVerified:     true,
+      }],
+      { session }
+    );
+
+    inquiry.status     = 'closed';
+    inquiry.notes      = (inquiry.notes ? inquiry.notes + '\n' : '') + `Account created: school ${school._id}`;
+    inquiry.reviewedAt = new Date();
+    inquiry.reviewedBy = req.user._id;
+    await inquiry.save({ session });
+
+    return { school, admin };
+  });
+
+  const inviteUrl = `${env.CLIENT_URL}/accept-invite/${rawToken}`;
+  queueEmailWithDirectFallback(
+    JOB_NAMES.SEND_NEW_SCHOOL_INVITE_EMAIL,
+    {
+      to:           admin.email,
+      firstName:    admin.firstName,
+      schoolName:   school.name,
+      inviteUrl,
+      expiresInDays: 7,
+      meta: {
+        schoolId:    school._id,
+        userId:      admin._id,
+        flow:        'inquiry-approval',
+        initiatedBy: req.user._id,
+      },
+    },
+    'Inquiry approval invite'
+  );
+
+  return sendSuccess(res, {
+    school,
+    admin: admin.toSafeObject(),
+    message: `School created. An invitation has been sent to ${admin.email}.`,
+  }, 201);
 });

@@ -5,19 +5,23 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   Phone, Mail, Building2, Clock, MessageSquare,
-  CheckCircle2, ChevronDown, ChevronUp, Search,
+  CheckCircle2, ChevronDown, ChevronUp, Search, UserPlus, Send,
 } from 'lucide-react';
-import { adminApi, getErrorMessage ,  showApiError } from '@/lib/api';
+import { adminApi, showApiError } from '@/lib/api';
 import { formatDate, cn } from '@/lib/utils';
 import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
 
 const STATUS_CONFIG = {
   pending:   { label: 'Pending',   cls: 'bg-yellow-100 text-yellow-800' },
@@ -25,11 +29,104 @@ const STATUS_CONFIG = {
   closed:    { label: 'Closed',    cls: 'bg-green-100 text-green-800' },
 };
 
+function ResendInviteButton({ inquiryId, email }) {
+  const { mutate, isPending } = useMutation({
+    mutationFn: () => adminApi.resendInquiryInvite(inquiryId),
+    onSuccess: (res) => toast.success(res.data?.data?.message ?? `Invite resent to ${email}.`),
+    onError: (err) => showApiError(err),
+  });
+
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      className="w-full"
+      onClick={() => mutate()}
+      disabled={isPending}
+    >
+      <Send className="h-4 w-4 mr-1.5" />
+      {isPending ? 'Sending…' : 'Resend Invite Email'}
+    </Button>
+  );
+}
+
+function ApproveDialog({ inquiry, open, onClose }) {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState({
+    schoolName:    inquiry.schoolName,
+    adminFirstName: inquiry.firstName,
+    adminLastName:  inquiry.lastName,
+    adminEmail:     inquiry.email,
+    adminPhone:     inquiry.phone,
+    county:         '',
+  });
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: () => adminApi.approveInquiry(inquiry._id, form),
+    onSuccess: (res) => {
+      const msg = res.data?.data?.message ?? 'School created and invite sent.';
+      toast.success(msg);
+      queryClient.invalidateQueries({ queryKey: ['inquiries'] });
+      queryClient.invalidateQueries({ queryKey: ['inquiry-stats'] });
+      onClose();
+    },
+    onError: (err) => showApiError(err),
+  });
+
+  const field = (label, key, opts = {}) => (
+    <div className="space-y-1.5">
+      <Label className="text-xs">{label}</Label>
+      <Input
+        value={form[key]}
+        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+        className="h-9 text-sm"
+        {...opts}
+      />
+    </div>
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create School Account</DialogTitle>
+          <p className="text-sm text-muted-foreground pt-1">
+            Review the details below. An invite link will be emailed to the admin so they can set their password.
+          </p>
+        </DialogHeader>
+
+        <div className="space-y-3 py-1">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">School</p>
+          {field('School name', 'schoolName')}
+          {field('County (optional)', 'county', { placeholder: 'e.g. Nairobi' })}
+
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground pt-2">Admin account</p>
+          <div className="grid grid-cols-2 gap-3">
+            {field('First name', 'adminFirstName')}
+            {field('Last name', 'adminLastName')}
+          </div>
+          {field('Email (login)', 'adminEmail', { type: 'email' })}
+          {field('Phone', 'adminPhone', { type: 'tel' })}
+        </div>
+
+        <DialogFooter className="gap-2 pt-2">
+          <Button variant="outline" onClick={onClose} disabled={isPending}>Cancel</Button>
+          <Button onClick={() => mutate()} disabled={isPending || !form.schoolName || !form.adminEmail}>
+            <UserPlus className="h-4 w-4 mr-1.5" />
+            {isPending ? 'Creating…' : 'Create Account & Send Invite'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function InquiryRow({ inquiry }) {
-  const [expanded, setExpanded] = useState(false);
-  const [notes, setNotes]       = useState(inquiry.notes ?? '');
-  const [status, setStatus]     = useState(inquiry.status);
-  const queryClient             = useQueryClient();
+  const [expanded, setExpanded]   = useState(false);
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [notes, setNotes]         = useState(inquiry.notes ?? '');
+  const [status, setStatus]       = useState(inquiry.status);
+  const queryClient               = useQueryClient();
 
   const { mutate: save, isPending } = useMutation({
     mutationFn: () => adminApi.updateInquiry(inquiry._id, { status, notes }),
@@ -143,7 +240,26 @@ function InquiryRow({ inquiry }) {
               {isPending ? 'Saving...' : 'Save'}
             </Button>
           </div>
+
+          <div className="pt-2 border-t border-border">
+            {inquiry.status !== 'closed' ? (
+              <Button size="sm" className="w-full" onClick={() => setApproveOpen(true)}>
+                <UserPlus className="h-4 w-4 mr-1.5" />
+                Approve & Create Account
+              </Button>
+            ) : (
+              <ResendInviteButton inquiryId={inquiry._id} email={inquiry.email} />
+            )}
+          </div>
         </div>
+      )}
+
+      {approveOpen && (
+        <ApproveDialog
+          inquiry={inquiry}
+          open={approveOpen}
+          onClose={() => setApproveOpen(false)}
+        />
       )}
     </div>
   );

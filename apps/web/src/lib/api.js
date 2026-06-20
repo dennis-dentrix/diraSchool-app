@@ -312,9 +312,11 @@ export const adminApi = {
   broadcastSystemEvent: (id, data) =>
     api.post(`/admin/system-events/${id}/broadcast`, data),
   // School inquiries
-  listInquiries: (params) => api.get('/admin/inquiries', { params }),
-  inquiryStats:  ()       => api.get('/admin/inquiries/stats'),
-  updateInquiry: (id, data) => api.patch(`/admin/inquiries/${id}`, data),
+  listInquiries:      (params)   => api.get('/admin/inquiries', { params }),
+  inquiryStats:       ()         => api.get('/admin/inquiries/stats'),
+  updateInquiry:      (id, data) => api.patch(`/admin/inquiries/${id}`, data),
+  approveInquiry:     (id, data) => api.post(`/admin/inquiries/${id}/approve`, data),
+  resendInquiryInvite:(id)       => api.post(`/admin/inquiries/${id}/resend-invite`),
 };
 
 // ─── Classes ──────────────────────────────────────────────────────────────────

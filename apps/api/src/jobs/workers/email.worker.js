@@ -13,6 +13,7 @@ import { QUEUE_NAMES, JOB_NAMES } from '../../constants/index.js';
 import { createBullMQConnection } from '../../config/redis.js';
 import {
   sendInviteEmail,
+  sendNewSchoolInviteEmail,
   sendParentEnrollmentEmail,
   sendPasswordResetEmail,
   sendVerificationEmail,
@@ -34,6 +35,10 @@ export const startEmailWorker = () => {
       switch (type) {
         case JOB_NAMES.SEND_INVITE_EMAIL:
           result = await sendInviteEmail(payload);
+          break;
+
+        case JOB_NAMES.SEND_NEW_SCHOOL_INVITE_EMAIL:
+          result = await sendNewSchoolInviteEmail(payload);
           break;
 
         case JOB_NAMES.SEND_PARENT_ENROLLMENT_EMAIL:

@@ -25,7 +25,6 @@ const schema = z.object({
 export default function AcceptInvitePage() {
   const params        = useParams();
   const token         = Array.isArray(params?.token) ? params.token[0] : params?.token;
-  const tokenTail     = token ? token.slice(-8) : '';
   const router        = useRouter();
   const { setUser }   = useAuthStore();
   const [showPwd,     setShowPwd]     = useState(false);
@@ -62,9 +61,7 @@ export default function AcceptInvitePage() {
           <p className="text-muted-foreground text-sm">
             Your name has been set by your administrator. Create a password to get started.
           </p>
-          {tokenTail && (
-            <p className="text-xs font-mono text-muted-foreground/50 pt-1">invite: …{tokenTail}</p>
-          )}
+
         </div>
 
         <form onSubmit={handleSubmit(mutate)} className="space-y-4">

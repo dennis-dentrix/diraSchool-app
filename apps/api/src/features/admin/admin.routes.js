@@ -44,6 +44,8 @@ import {
   listInquiries,
   getInquiryStats,
   updateInquiry,
+  approveInquiry,
+  resendInquiryInvite,
 } from './admin.controller.js';
 
 const router = express.Router();
@@ -103,8 +105,10 @@ router.delete('/system-events/:id',             deleteSystemEvent);
 router.post('/system-events/:id/broadcast',     broadcastSystemEvent);
 
 // School inquiries (contact form submissions)
-router.get('/inquiries',           listInquiries);
-router.get('/inquiries/stats',     getInquiryStats);
-router.patch('/inquiries/:id',     updateInquiry);
+router.get('/inquiries',                     listInquiries);
+router.get('/inquiries/stats',               getInquiryStats);
+router.patch('/inquiries/:id',               updateInquiry);
+router.post('/inquiries/:id/approve',        approveInquiry);
+router.post('/inquiries/:id/resend-invite',  resendInquiryInvite);
 
 export default router;

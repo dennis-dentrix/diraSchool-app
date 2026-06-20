@@ -259,6 +259,17 @@ export const sendInviteEmail = ({
     meta,
   });
 
+export const sendNewSchoolInviteEmail = ({
+  to, firstName, schoolName, inviteUrl, expiresInDays = 7, meta = {},
+}) =>
+  sendEmail({
+    to,
+    subject: `Your DiraSchool account is ready — ${schoolName}`,
+    html: _newSchoolInviteTemplate({ firstName, schoolName, inviteUrl, expiresInDays }),
+    template: 'new-school-invite',
+    meta,
+  });
+
 export const sendParentEnrollmentEmail = ({
   to, firstName, schoolName, childName, isAdditionalChild = false, meta = {},
 }) =>
@@ -761,6 +772,17 @@ const _systemEventTemplate = ({ firstName, eventTitle, eventBody, eventType = 'a
   );
 };
 
+// Brand palette (matches globals.css CSS variables)
+const BRAND = {
+  primary:    '#1f5b5e',  // --primary: teal
+  primaryDark:'#163f42',  // darker teal for hover/accents
+  ink:        '#0f1410',  // --foreground
+  paper:      '#f7f5f0',  // --background
+  muted:      '#5a6b5d',  // --muted-foreground
+  border:     '#e2e0db',
+  dark:       '#161a18',  // --sidebar (dark panel)
+};
+
 const _shell = (title, body) => `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -768,17 +790,17 @@ const _shell = (title, body) => `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${title}</title>
 </head>
-<body style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,Helvetica,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 0;">
+<body style="margin:0;padding:0;background:${BRAND.paper};font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.paper};padding:40px 0;">
     <tr>
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0"
                style="background:#ffffff;border-radius:8px;overflow:hidden;
                       box-shadow:0 2px 8px rgba(0,0,0,.08);max-width:600px;width:100%;">
           <tr>
-            <td style="background:#1a56db;padding:28px 40px;">
+            <td style="background:${BRAND.dark};padding:28px 40px;">
               <p style="margin:0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:.5px;">
-                Diraschool
+                DiraSchool
               </p>
             </td>
           </tr>
@@ -788,9 +810,9 @@ const _shell = (title, body) => `<!DOCTYPE html>
             </td>
           </tr>
           <tr>
-            <td style="background:#f4f6f9;padding:20px 40px;border-top:1px solid #e5e7eb;">
-              <p style="margin:0;font-size:12px;color:#6b7280;text-align:center;">
-                This email was sent by Diraschool School Management System.<br/>
+            <td style="background:${BRAND.paper};padding:20px 40px;border-top:1px solid ${BRAND.border};">
+              <p style="margin:0;font-size:12px;color:${BRAND.muted};text-align:center;">
+                This email was sent by DiraSchool School Management System.<br/>
                 If you didn't expect this email, you can safely ignore it.
               </p>
             </td>
@@ -804,7 +826,7 @@ const _shell = (title, body) => `<!DOCTYPE html>
 
 const _btn = (url, label) =>
   `<a href="${url}"
-     style="display:inline-block;background:#1a56db;color:#ffffff;
+     style="display:inline-block;background:${BRAND.primary};color:#ffffff;
             padding:14px 28px;border-radius:6px;text-decoration:none;
             font-size:15px;font-weight:600;margin:24px 0;"
   >${label}</a>`;
@@ -813,36 +835,36 @@ const _verifyTemplate = ({ firstName, schoolName, code, verifyUrl, expiresInMinu
   _shell(
     `Verify your email — ${schoolName}`,
     `
-      <h2 style="margin:0 0 16px;font-size:20px;color:#111827;">Welcome to Diraschool, ${firstName}!</h2>
+      <h2 style="margin:0 0 16px;font-size:20px;color:${BRAND.ink};">Welcome to DiraSchool, ${firstName}!</h2>
       <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">
         You've successfully created an account for <strong>${schoolName}</strong>.
         Verify your email to activate it — use either option below.
       </p>
-      <p style="margin:20px 0 8px;font-size:12px;font-weight:700;color:#6b7280;
+      <p style="margin:20px 0 8px;font-size:12px;font-weight:700;color:${BRAND.muted};
                 letter-spacing:.8px;text-transform:uppercase;">
         Option 1 — Enter this code on the verification screen
       </p>
       <div style="text-align:center;margin-bottom:4px;">
-        <div style="display:inline-block;background:#f0f4ff;border:2px solid #1a56db;
+        <div style="display:inline-block;background:#eef5f5;border:2px solid ${BRAND.primary};
                     border-radius:10px;padding:18px 40px;">
-          <p style="margin:0 0 4px;font-size:12px;color:#6b7280;text-transform:uppercase;
+          <p style="margin:0 0 4px;font-size:12px;color:${BRAND.muted};text-transform:uppercase;
                     letter-spacing:.5px;">Verification Code</p>
-          <p style="margin:0;font-size:40px;font-weight:800;color:#1a56db;letter-spacing:10px;
+          <p style="margin:0;font-size:40px;font-weight:800;color:${BRAND.primary};letter-spacing:10px;
                     font-family:'Courier New',monospace;">${code}</p>
         </div>
       </div>
       <p style="text-align:center;font-size:13px;color:#9ca3af;margin:20px 0;">— or —</p>
-      <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#6b7280;
+      <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:${BRAND.muted};
                 letter-spacing:.8px;text-transform:uppercase;">
         Option 2 — Click the link to verify instantly
       </p>
       ${_btn(verifyUrl, 'Verify My Email →')}
-      <p style="margin:0 0 0;font-size:12px;color:#6b7280;">
+      <p style="margin:0 0 0;font-size:12px;color:${BRAND.muted};">
         Or copy into your browser:<br/>
-        <span style="color:#1a56db;word-break:break-all;">${verifyUrl}</span>
+        <span style="color:${BRAND.primary};word-break:break-all;">${verifyUrl}</span>
       </p>
-      <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0;" />
-      <p style="margin:0;font-size:13px;color:#6b7280;">
+      <hr style="border:none;border-top:1px solid ${BRAND.border};margin:28px 0;" />
+      <p style="margin:0;font-size:13px;color:${BRAND.muted};">
         Both options expire in <strong>${expiresInMinutes} minutes</strong>.
         If they expire, request a new code from the login screen.
       </p>
@@ -853,7 +875,7 @@ const _inviteTemplate = ({ firstName, schoolName, inviteUrl, childName, expiresI
   _shell(
     `Invitation to ${schoolName}`,
     `
-      <h2 style="margin:0 0 16px;font-size:20px;color:#111827;">Hello ${firstName},</h2>
+      <h2 style="margin:0 0 16px;font-size:20px;color:${BRAND.ink};">Hello ${firstName},</h2>
       ${childName ? `
       <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">
         Your child <strong>${childName}</strong> has been successfully enrolled at
@@ -861,7 +883,7 @@ const _inviteTemplate = ({ firstName, schoolName, inviteUrl, childName, expiresI
       </p>
       ` : ''}
       <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">
-        Your account has been created on <strong>Diraschool</strong> for
+        Your account has been created on <strong>DiraSchool</strong> for
         <strong>${schoolName}</strong>.
       </p>
       <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">
@@ -869,13 +891,69 @@ const _inviteTemplate = ({ firstName, schoolName, inviteUrl, childName, expiresI
         This link expires in <strong>${expiresInDays} days</strong>.
       </p>
       ${_btn(inviteUrl, 'Set My Password →')}
-      <p style="margin:4px 0 0;font-size:12px;color:#6b7280;">
+      <p style="margin:4px 0 0;font-size:12px;color:${BRAND.muted};">
         Or copy this link into your browser:<br/>
-        <span style="color:#1a56db;word-break:break-all;">${inviteUrl}</span>
+        <span style="color:${BRAND.primary};word-break:break-all;">${inviteUrl}</span>
       </p>
-      <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0;" />
-      <p style="margin:0;font-size:13px;color:#6b7280;">
+      <hr style="border:none;border-top:1px solid ${BRAND.border};margin:28px 0;" />
+      <p style="margin:0;font-size:13px;color:${BRAND.muted};">
         If you weren't expecting this invitation, contact your school administrator.
+      </p>
+    `
+  );
+
+const _newSchoolInviteTemplate = ({ firstName, schoolName, inviteUrl, expiresInDays }) =>
+  _shell(
+    `Your DiraSchool account is ready — ${schoolName}`,
+    `
+      <h2 style="margin:0 0 8px;font-size:22px;color:${BRAND.ink};">Welcome to DiraSchool, ${firstName}!</h2>
+      <p style="margin:0 0 24px;font-size:15px;color:${BRAND.muted};line-height:1.6;">
+        <strong>${schoolName}</strong> is now set up and ready to go.
+      </p>
+
+      <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.6;">
+        You're the account administrator. Once you set your password, you can:
+      </p>
+
+      <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;width:100%;">
+        ${[
+          ['Add classes and students', 'Get your school register set up in minutes'],
+          ['Manage staff accounts',    'Invite teachers, secretaries, and other staff'],
+          ['Track fees and payments',  'Record payments and generate receipts instantly'],
+          ['Attendance and reports',   'Daily attendance, CBC report cards, and more'],
+        ].map(([title, desc]) => `
+        <tr>
+          <td style="padding:8px 0;vertical-align:top;">
+            <table cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="width:28px;vertical-align:top;padding-top:1px;">
+                  <span style="display:inline-block;width:18px;height:18px;background:${BRAND.primary};
+                               border-radius:50%;text-align:center;line-height:18px;
+                               font-size:11px;color:#fff;font-weight:700;">✓</span>
+                </td>
+                <td>
+                  <p style="margin:0;font-size:14px;font-weight:600;color:${BRAND.ink};">${title}</p>
+                  <p style="margin:2px 0 0;font-size:13px;color:${BRAND.muted};">${desc}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>`).join('')}
+      </table>
+
+      <p style="margin:0 0 4px;font-size:15px;color:#374151;line-height:1.6;">
+        Set your password to activate your account. This link expires in <strong>${expiresInDays} days</strong>.
+      </p>
+      ${_btn(inviteUrl, 'Activate My Account →')}
+      <p style="margin:4px 0 0;font-size:12px;color:${BRAND.muted};">
+        Or copy this link into your browser:<br/>
+        <span style="color:${BRAND.primary};word-break:break-all;">${inviteUrl}</span>
+      </p>
+
+      <hr style="border:none;border-top:1px solid ${BRAND.border};margin:28px 0;" />
+      <p style="margin:0;font-size:13px;color:${BRAND.muted};">
+        Need help getting started? Reply to this email or reach us at
+        <a href="mailto:admin@diraschool.com" style="color:${BRAND.primary};text-decoration:none;">admin@diraschool.com</a>.
       </p>
     `
   );
