@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Search, MoreHorizontal, GraduationCap, Users, ShieldOff, ShieldCheck, AlertTriangle, CheckCircle2, Ban, Plus } from 'lucide-react';
+import { Search, MoreHorizontal, GraduationCap, Users, ShieldOff, ShieldCheck, AlertTriangle, CheckCircle2, Ban, Plus, ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react';
 import { adminApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { PageHeader } from '@/components/shared/page-header';
@@ -15,6 +15,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/badge';
 
 const planColors = {
   trial: 'bg-yellow-100 text-yellow-800',
@@ -57,6 +59,8 @@ export default function SuperadminSchoolsPage() {
   const [subForm, setSubForm] = useState({ planTier: '', subscriptionStatus: '', trialExpiry: '' });
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState(CREATE_FORM_INIT);
+  const [logsSchool, setLogsSchool] = useState(null);
+  const [logsPage, setLogsPage] = useState(1);
 
   const { data, isLoading } = useQuery({
     queryKey: ['sa-schools-list', page, search, statusFilter, activeFilter],
@@ -69,6 +73,12 @@ export default function SuperadminSchoolsPage() {
       });
       return res.data;
     },
+  });
+
+  const { data: logsData, isLoading: logsLoading } = useQuery({
+    queryKey: ['sa-school-audit-logs', logsSchool?._id, logsPage],
+    queryFn: () => adminApi.auditLogs({ schoolId: logsSchool._id, page: logsPage, limit: 20 }).then((r) => r.data),
+    enabled: !!logsSchool,
   });
 
   const { mutate: updateSub, isPending } = useMutation({
@@ -92,6 +102,11 @@ export default function SuperadminSchoolsPage() {
     },
     onError: (err) => showApiError(err),
   });
+
+  function openLogs(school) {
+    setLogsSchool(school);
+    setLogsPage(1);
+  }
 
   function openSubDialog(school) {
     setSelectedSchool(school);
@@ -171,6 +186,9 @@ export default function SuperadminSchoolsPage() {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => router.push(`/superadmin/schools/${s._id}`)}>View Details</DropdownMenuItem>
               <DropdownMenuItem onClick={() => openSubDialog(s)}>Manage Subscription</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openLogs(s)}>
+                <ClipboardList className="h-4 w-4 mr-2" /> View Logs
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               {s.isActive !== false ? (
                 <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => setDisableTarget(s)}>
@@ -356,6 +374,72 @@ export default function SuperadminSchoolsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Audit logs sheet ─────────────────────────────────────────────── */}
+      <Sheet open={!!logsSchool} onOpenChange={(v) => { if (!v) setLogsSchool(null); }}>
+        <SheetContent side="right" className="w-full max-w-2xl flex flex-col gap-0 p-0">
+          <SheetHeader className="px-6 py-4 border-b">
+            <SheetTitle className="flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" />
+              Audit Logs — {logsSchool?.name}
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            {logsLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="h-14 rounded-lg bg-muted animate-pulse" />
+                ))}
+              </div>
+            ) : !logsData?.logs?.length ? (
+              <p className="text-sm text-muted-foreground text-center py-12">No audit logs found for this school.</p>
+            ) : (
+              <div className="space-y-2">
+                {logsData.logs.map((log) => (
+                  <div key={log._id} className="flex items-start gap-3 rounded-lg border p-3 text-sm">
+                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="capitalize text-xs">{log.action}</Badge>
+                        <span className="font-medium">{log.resource}</span>
+                        {log.resourceId && (
+                          <span className="text-xs text-muted-foreground font-mono truncate max-w-[120px]">{String(log.resourceId)}</span>
+                        )}
+                      </div>
+                      {log.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{log.description}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                        {log.userId && (
+                          <span>{log.userId.firstName} {log.userId.lastName} · <span className="capitalize">{log.userId.role}</span></span>
+                        )}
+                        <span>·</span>
+                        <span>{formatDate(log.createdAt)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {logsData?.meta?.totalPages > 1 && (
+            <div className="border-t px-6 py-3 flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">
+                Page {logsData.meta.page} of {logsData.meta.totalPages}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" disabled={logsPage <= 1} onClick={() => setLogsPage((p) => p - 1)}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" disabled={logsPage >= logsData.meta.totalPages} onClick={() => setLogsPage((p) => p + 1)}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
 
       {/* ── Subscription quick-edit dialog ────────────────────────────────── */}
       <Dialog open={subOpen} onOpenChange={setSubOpen}>
