@@ -88,14 +88,16 @@ const resendClient = new Resend(env.RESEND_API_KEY);
 
 logger.info('[Email] Resend configured', { from: FROM.address });
 
-const sendViaResend = async ({ to, subject, html }) => {
-  const { data, error } = await resendClient.emails.send({
+const sendViaResend = async ({ to, subject, html, attachments }) => {
+  const payload = {
     from: `${FROM.name} <${FROM.address}>`,
     to,
     subject,
     html,
     text: htmlToText(html),
-  });
+  };
+  if (attachments?.length) payload.attachments = attachments;
+  const { data, error } = await resendClient.emails.send(payload);
 
   if (error) {
     const err = new Error(error.message ?? 'Resend delivery error');
@@ -194,9 +196,9 @@ const persistEmailEvent = async ({
   }
 };
 
-const sendEmail = async ({ to, subject, html, template, meta = {} }) => {
+const sendEmail = async ({ to, subject, html, template, meta = {}, attachments }) => {
   try {
-    const result = await sendViaResend({ to, subject, html });
+    const result = await sendViaResend({ to, subject, html, attachments });
 
     await persistEmailEvent({
       to, subject, template,
@@ -1227,4 +1229,33 @@ export const sendContactInquiryEmail = ({ firstName, lastName, schoolName, email
     `,
     template: 'contact-inquiry',
     meta,
+  });
+
+export const sendWeeklySummaryEmail = ({ to, schoolName, weekLabel, attachments }) =>
+  sendEmail({
+    to,
+    subject: `Weekly School Summary — ${weekLabel} | ${schoolName}`,
+    html: _shell(
+      `Weekly Summary — ${weekLabel}`,
+      `
+        <h2 style="margin:0 0 16px;font-size:20px;color:#111827;">Weekly School Summary</h2>
+        <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">
+          Please find attached your weekly summary reports for <strong>${schoolName}</strong> covering the week of <strong>${weekLabel}</strong>.
+        </p>
+        <div style="background:#f0f4ff;border:1px solid #dbeafe;border-radius:8px;padding:16px 20px;margin:0 0 20px;">
+          <p style="margin:0 0 8px;font-size:14px;color:#1e40af;font-weight:600;">Attached reports:</p>
+          <ul style="margin:0;padding-left:18px;font-size:14px;color:#1e40af;line-height:1.8;">
+            <li>Student Attendance Summary</li>
+            <li>Teacher Check-In Report</li>
+            <li>Fees Collection Summary</li>
+          </ul>
+        </div>
+        <p style="margin:0;font-size:13px;color:#6b7280;line-height:1.6;">
+          These reports are generated automatically every Saturday morning. Log in to your dashboard for detailed records.
+        </p>
+      `
+    ),
+    template: 'weekly-summary',
+    attachments,
+    meta: { schoolName, weekLabel },
   });

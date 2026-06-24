@@ -164,6 +164,7 @@ export const QUEUE_NAMES = {
   EMAIL: 'email',
   CHECKOUT_REMINDER: 'checkout-reminder',
   TRIAL_REMINDER: 'trial-reminder',
+  WEEKLY_SUMMARY: 'weekly-summary',
 };
 
 export const JOB_NAMES = {
@@ -185,6 +186,7 @@ export const JOB_NAMES = {
   SEND_TRIAL_EXPIRY_EMAIL:       'send-trial-expiry-email',
   RUN_TRIAL_REMINDER_SCAN:       'run-trial-reminder-scan',
   SEND_SYSTEM_EVENT_EMAIL:       'send-system-event-email',
+  RUN_WEEKLY_SUMMARY_SCAN:       'run-weekly-summary-scan',
 };
 
 export const AUDIT_ACTIONS = {

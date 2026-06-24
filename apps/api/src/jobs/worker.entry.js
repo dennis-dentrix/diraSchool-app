@@ -26,6 +26,7 @@ import { processImportJob } from './workers/import.worker.js';
 import { startEmailWorker } from './workers/email.worker.js';
 import { processCheckoutReminderScan } from './workers/checkout-reminder.worker.js';
 import { processTrialReminderScan } from './workers/trial-reminder.worker.js';
+import { processWeeklySummaryScan } from './workers/weekly-summary.worker.js';
 
 validateEnv();
 initSentry('diraschool-worker');
@@ -95,6 +96,24 @@ const trialReminderWorker = new Worker(
   { connection, concurrency: 1 }
 );
 
+// ── Weekly summary job ────────────────────────────────────────────────────────
+// Runs every Saturday at 02:00 UTC (05:00 EAT). Generates and emails 3-PDF
+// weekly summaries (attendance, check-ins, fees) to every school that was
+// in session at least once during the Mon–Fri week.
+const weeklySummaryQueue = new Queue(QUEUE_NAMES.WEEKLY_SUMMARY, { connection });
+weeklySummaryQueue.on('error', (err) => logRedisConnectionError('Queue:weekly-summary', err));
+await weeklySummaryQueue.upsertJobScheduler(
+  'weekly-summary-scan',
+  { pattern: '0 2 * * 6' }, // 02:00 UTC Saturday = 05:00 EAT
+  { name: JOB_NAMES.RUN_WEEKLY_SUMMARY_SCAN, data: {} }
+);
+
+const weeklySummaryWorker = new Worker(
+  QUEUE_NAMES.WEEKLY_SUMMARY,
+  async () => processWeeklySummaryScan(),
+  { connection, concurrency: 1 }
+);
+
 const smsWorker = new Worker(QUEUE_NAMES.SMS, processSmsJob, {
   connection,
   concurrency: 5,    // process up to 5 SMS jobs in parallel
@@ -127,6 +146,7 @@ for (const [name, worker] of [
   ['email',             emailWorker],
   ['checkout-reminder', checkoutReminderWorker],
   ['trial-reminder',    trialReminderWorker],
+  ['weekly-summary',    weeklySummaryWorker],
 ]) {
   worker.on('completed', (job) => {
     logger.info(`[Worker:${name}] Job ${job.id} completed`);
@@ -163,6 +183,8 @@ const shutdown = async (signal) => {
   await checkoutQueue.close();
   await trialReminderWorker.close();
   await trialReminderQueue.close();
+  await weeklySummaryWorker.close();
+  await weeklySummaryQueue.close();
   await mongoose.disconnect();
   process.exit(0);
 };
