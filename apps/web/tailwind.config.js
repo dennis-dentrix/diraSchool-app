@@ -14,9 +14,9 @@ module.exports = {
     },
     extend: {
       fontFamily: {
-        display: ['"Inter Tight"', 'ui-sans-serif', 'system-ui'],
-        sans:    ['Inter', 'ui-sans-serif', 'system-ui'],
-        mono:    ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        display: ['var(--font-display)', 'ui-sans-serif', 'system-ui'],
+        sans:    ['var(--font-sans)', 'ui-sans-serif', 'system-ui'],
+        mono:    ['var(--font-mono)', 'ui-monospace', 'monospace'],
       },
       colors: {
         border: 'hsl(var(--border))',

@@ -11,6 +11,7 @@
 import mongoose from 'mongoose';
 import School from '../../features/schools/School.model.js';
 import SchoolSettings from '../../features/settings/SchoolSettings.model.js';
+import User from '../../features/users/User.model.js';
 import Attendance from '../../features/attendance/Attendance.model.js';
 import CheckIn from '../../features/checkins/CheckIn.model.js';
 import Payment from '../../features/fees/Payment.model.js';
@@ -180,7 +181,7 @@ export const processWeeklySummaryScan = async () => {
   const schools = await School.find({
     isActive: true,
     subscriptionStatus: { $in: ['trial', 'active'] },
-  }).select('name email').lean();
+  }).select('name').lean();
 
   let sent = 0;
   let skipped = 0;
@@ -198,8 +199,16 @@ export const processWeeklySummaryScan = async () => {
         continue;
       }
 
-      const settings = await SchoolSettings.findOne({ schoolId: school._id })
-        .select('logo').lean();
+      const [settings, adminUser] = await Promise.all([
+        SchoolSettings.findOne({ schoolId: school._id }).select('logo').lean(),
+        User.findOne({ schoolId: school._id, role: 'school_admin', isActive: true }).select('email').lean(),
+      ]);
+
+      if (!adminUser?.email) {
+        logger.warn('[WeeklySummary] No active school_admin found — skipping', { schoolId: school._id, name: school.name });
+        skipped++;
+        continue;
+      }
 
       const logoBuffer = settings?.logo
         ? await getFileBuffer(settings.logo).catch(() => null)
@@ -228,7 +237,7 @@ export const processWeeklySummaryScan = async () => {
       const safeWeek = weekLabel.replace(/[^a-zA-Z0-9]/g, '_');
 
       await sendWeeklySummaryEmail({
-        to: school.email,
+        to: adminUser.email,
         schoolName: school.name,
         weekLabel,
         attachments: [

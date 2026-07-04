@@ -1,11 +1,24 @@
-import { Plus_Jakarta_Sans } from 'next/font/google';
+import { Inter, Inter_Tight, JetBrains_Mono } from 'next/font/google';
 import { Providers } from '@/providers/providers';
-import 'leaflet/dist/leaflet.css';
 import './globals.css';
 
-const font = Plus_Jakarta_Sans({
+const fontSans = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
+  display: 'swap',
+});
+
+const fontDisplay = Inter_Tight({
+  subsets: ['latin'],
+  variable: '--font-display',
+  weight: ['500', '600', '700'],
+  display: 'swap',
+});
+
+const fontMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  weight: ['500', '600'],
   display: 'swap',
 });
 
@@ -126,7 +139,7 @@ const jsonLd = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
-      <body className={`${font.variable} font-sans antialiased`}>
+      <body className={`${fontSans.variable} ${fontDisplay.variable} ${fontMono.variable} font-sans antialiased`}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
