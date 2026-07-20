@@ -18,6 +18,33 @@ services:
       - key: JWT_SECRET
         value: your-jwt-secret-here
 
+  # Background Worker - BullMQ email job processor
+  - type: worker
+    name: diraschool-worker
+    runtime: node
+    repo: https://github.com/dennis-dentrix/diraschool-api
+    branch: main
+    buildCommand: npm install
+    startCommand: npm run worker -w apps/api
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Required: match the values set on diraschool-api
+      - key: MONGODB_URI
+        value: your-mongodb-uri-here
+      - key: REDIS_URL
+        value: your-redis-url-here
+      - key: JWT_SECRET
+        value: your-jwt-secret-here
+      - key: EMAIL_FROM
+        value: your-email-from-here
+      - key: RESEND_API_KEY
+        value: your-resend-api-key-here
+      - key: ZEPTOMAIL_API_KEY
+        value: your-zeptomail-api-key-here
+      - key: ZEPTOMAIL_API_URL
+        value: your-zeptomail-api-url-here
+
   # Web Service - Next.js frontend
   - type: web
     name: diraschool

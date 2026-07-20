@@ -9,7 +9,9 @@ node_modules/
 .env.test
 .env.production
 .env.staging
-.env.production.example
+apps/web/.env.production.example
+apps/api/.env.example
+.env.local.example
 
 # ── Logs (keep the directory, ignore the files) ──────────────
 apps/api/logs/*.log
