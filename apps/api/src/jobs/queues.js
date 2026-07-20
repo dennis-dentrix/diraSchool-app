@@ -62,6 +62,17 @@ export const receiptQueue = new Queue(QUEUE_NAMES.RECEIPT, {
 });
 receiptQueue.on('error', onQueueError('receipt'));
 
+export const weeklySummaryQueue = new Queue(QUEUE_NAMES.WEEKLY_SUMMARY, {
+  connection,
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: { type: 'fixed', delay: 10000 },
+    removeOnComplete: { count: 200 },
+    removeOnFail: { count: 500 },
+  },
+});
+weeklySummaryQueue.on('error', onQueueError('weekly-summary'));
+
 export const emailQueue = new Queue(QUEUE_NAMES.EMAIL, {
   connection,
   defaultJobOptions: {

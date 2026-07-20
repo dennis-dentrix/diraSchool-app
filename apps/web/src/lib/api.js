@@ -271,6 +271,8 @@ export const adminApi = {
   toggleUser: (id) => api.patch(`/admin/users/${id}/toggle`),
   approveSenderId: (id, data) =>
     api.patch(`/admin/schools/${id}/sms-sender-id`, data),
+  resendSchoolSummary: (id, data) =>
+    api.post(`/admin/schools/${id}/resend-summary`, data),
   // Billing groups
   listGroups: (params) => api.get("/admin/groups", { params }),
   getGroup: (id) => api.get(`/admin/groups/${id}`),

@@ -187,6 +187,7 @@ export const JOB_NAMES = {
   RUN_TRIAL_REMINDER_SCAN:       'run-trial-reminder-scan',
   SEND_SYSTEM_EVENT_EMAIL:       'send-system-event-email',
   RUN_WEEKLY_SUMMARY_SCAN:       'run-weekly-summary-scan',
+  RESEND_SCHOOL_SUMMARY:         'resend-school-summary',
 };
 
 export const AUDIT_ACTIONS = {

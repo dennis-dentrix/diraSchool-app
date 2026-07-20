@@ -110,7 +110,7 @@ await weeklySummaryQueue.upsertJobScheduler(
 
 const weeklySummaryWorker = new Worker(
   QUEUE_NAMES.WEEKLY_SUMMARY,
-  async () => processWeeklySummaryScan(),
+  async (job) => processWeeklySummaryScan(job.data),
   { connection, concurrency: 1 }
 );
 

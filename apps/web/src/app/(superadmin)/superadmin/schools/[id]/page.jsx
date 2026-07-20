@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, MessageSquare, ShieldOff, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, MessageSquare, Send, ShieldOff, XCircle } from 'lucide-react';
 import { adminApi, studentsApi, getErrorMessage ,  showApiError } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -113,6 +114,16 @@ export default function SchoolDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['sa-school', id] });
       queryClient.invalidateQueries({ queryKey: ['sa-schools-list'] });
     },
+    onError: (err) => showApiError(err),
+  });
+
+  const [summaryRangeMode, setSummaryRangeMode] = useState(false);
+  const [summaryDate, setSummaryDate] = useState('');
+  const [summaryStartDate, setSummaryStartDate] = useState('');
+  const [summaryEndDate, setSummaryEndDate] = useState('');
+  const { mutate: resendSummary, isPending: resendingSummary } = useMutation({
+    mutationFn: (data) => adminApi.resendSchoolSummary(id, data),
+    onSuccess: (res) => toast.success(res.data?.message ?? 'Summary queued for resend'),
     onError: (err) => showApiError(err),
   });
 
@@ -222,6 +233,58 @@ export default function SchoolDetailPage() {
               </div>
             </div>
           </div>
+
+          <Card className="mt-4 max-w-2xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Send className="h-4 w-4" />
+                Resend Summary
+              </CardTitle>
+              <CardDescription>
+                Resend the attendance, staff check-in, and fees summary email to this school's admin for a past day or week.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-0">
+              <div className="flex items-center gap-2">
+                <Switch checked={summaryRangeMode} onCheckedChange={setSummaryRangeMode} id="summary-range-mode" />
+                <Label htmlFor="summary-range-mode" className="cursor-pointer">
+                  {summaryRangeMode ? 'Date range' : 'Single day'}
+                </Label>
+              </div>
+
+              {summaryRangeMode ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Start date</Label>
+                    <Input type="date" value={summaryStartDate} onChange={(e) => setSummaryStartDate(e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>End date</Label>
+                    <Input type="date" value={summaryEndDate} onChange={(e) => setSummaryEndDate(e.target.value)} />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <Label>Date</Label>
+                  <Input type="date" value={summaryDate} onChange={(e) => setSummaryDate(e.target.value)} />
+                </div>
+              )}
+
+              <Button
+                disabled={
+                  resendingSummary ||
+                  (summaryRangeMode ? !summaryStartDate || !summaryEndDate : !summaryDate)
+                }
+                onClick={() => resendSummary(
+                  summaryRangeMode
+                    ? { startDate: summaryStartDate, endDate: summaryEndDate }
+                    : { date: summaryDate }
+                )}
+              >
+                {resendingSummary ? 'Sending…' : 'Resend Summary'}
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* ── Account Review ───────────────────────────────────────────────── */}

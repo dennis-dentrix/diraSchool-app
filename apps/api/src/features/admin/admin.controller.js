@@ -68,6 +68,7 @@ import {
   sendSenderIdReviewedEmail,
 } from '../../services/email.service.js';
 import { queueEmailWithDirectFallback } from '../../utils/emailJobs.js';
+import { weeklySummaryQueue } from '../../jobs/queues.js';
 import { notifyUser } from '../../utils/notify.js';
 import { emitToUser } from '../../config/socket.js';
 import { JOB_NAMES } from '../../constants/index.js';
@@ -1868,6 +1869,44 @@ export const resendInquiryInvite = asyncHandler(async (req, res) => {
   );
 
   return sendSuccess(res, { message: `A new invitation link has been sent to ${user.email}.` });
+});
+
+// ── POST /api/v1/admin/schools/:id/resend-summary ──────────────────────────
+/**
+ * Body: { date: 'YYYY-MM-DD' } for a single day, or
+ *       { startDate: 'YYYY-MM-DD', endDate: 'YYYY-MM-DD' } for a range.
+ */
+export const resendSchoolSummary = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { date, startDate, endDate } = req.body;
+
+  const school = await School.findById(id).select('name').lean();
+  if (!school) return sendError(res, 'School not found.', 404);
+
+  let monday;
+  let friday;
+  if (date) {
+    monday = new Date(`${date}T00:00:00+03:00`);
+    if (Number.isNaN(monday.getTime())) return sendError(res, 'Invalid date.', 400);
+    friday = new Date(monday);
+    friday.setUTCHours(friday.getUTCHours() + 23, 59, 59, 999);
+  } else if (startDate && endDate) {
+    monday = new Date(`${startDate}T00:00:00+03:00`);
+    friday = new Date(`${endDate}T00:00:00+03:00`);
+    friday.setUTCHours(friday.getUTCHours() + 23, 59, 59, 999);
+    if (Number.isNaN(monday.getTime()) || Number.isNaN(friday.getTime()) || monday > friday) {
+      return sendError(res, 'Invalid date range.', 400);
+    }
+  } else {
+    return sendError(res, 'Provide either "date" or both "startDate" and "endDate".', 400);
+  }
+
+  await weeklySummaryQueue.add(
+    JOB_NAMES.RESEND_SCHOOL_SUMMARY,
+    { schoolId: school._id.toString(), monday, friday }
+  );
+
+  return sendSuccess(res, { message: `Summary queued for resend to ${school.name}.` });
 });
 
 export const approveInquiry = asyncHandler(async (req, res) => {

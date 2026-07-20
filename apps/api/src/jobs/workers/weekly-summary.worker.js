@@ -52,6 +52,16 @@ const getWeekBounds = () => {
   return { monday: mondayEAT, friday: fridayEAT, weekLabel };
 };
 
+const buildRangeLabel = (monday, friday) => {
+  const fmt = (d, opts) => d.toLocaleDateString('en-KE', { ...opts, timeZone: 'Africa/Nairobi' });
+
+  if (monday.toDateString() === friday.toDateString()) {
+    return fmt(monday, { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  return `${fmt(monday, { day: 'numeric', month: 'short' })} – ${fmt(friday, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+};
+
 // ── Attendance data ───────────────────────────────────────────────────────────
 
 const buildAttendanceRows = async (schoolId, monday, friday) => {
@@ -174,29 +184,41 @@ const buildFeesRows = async (schoolId, monday, friday) => {
 
 // ── Main processor ────────────────────────────────────────────────────────────
 
-export const processWeeklySummaryScan = async () => {
-  const { monday, friday, weekLabel } = getWeekBounds();
-  logger.info('[WeeklySummary] Starting scan', { weekLabel });
+export const processWeeklySummaryScan = async (options = {}) => {
+  const { schoolId } = options;
+  const hasExplicitRange = options.monday && options.friday;
 
-  const schools = await School.find({
-    isActive: true,
-    subscriptionStatus: { $in: ['trial', 'active'] },
-  }).select('name').lean();
+  const bounds = hasExplicitRange
+    ? { monday: new Date(options.monday), friday: new Date(options.friday) }
+    : getWeekBounds();
+  const { monday, friday } = bounds;
+  const weekLabel = hasExplicitRange ? buildRangeLabel(monday, friday) : bounds.weekLabel;
+
+  logger.info('[WeeklySummary] Starting scan', { weekLabel, schoolId });
+
+  const schools = schoolId
+    ? await School.find({ _id: schoolId, isActive: true }).select('name').lean()
+    : await School.find({
+        isActive: true,
+        subscriptionStatus: { $in: ['trial', 'active'] },
+      }).select('name').lean();
 
   let sent = 0;
   let skipped = 0;
 
   for (const school of schools) {
     try {
-      const sessionCheck = await Attendance.countDocuments({
-        schoolId: school._id,
-        date: { $gte: monday, $lte: friday },
-      });
+      if (!schoolId) {
+        const sessionCheck = await Attendance.countDocuments({
+          schoolId: school._id,
+          date: { $gte: monday, $lte: friday },
+        });
 
-      if (sessionCheck === 0) {
-        logger.info('[WeeklySummary] Skipping — school not in session', { schoolId: school._id, name: school.name });
-        skipped++;
-        continue;
+        if (sessionCheck === 0) {
+          logger.info('[WeeklySummary] Skipping — school not in session', { schoolId: school._id, name: school.name });
+          skipped++;
+          continue;
+        }
       }
 
       const [settings, adminUser] = await Promise.all([

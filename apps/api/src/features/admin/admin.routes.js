@@ -46,6 +46,7 @@ import {
   updateInquiry,
   approveInquiry,
   resendInquiryInvite,
+  resendSchoolSummary,
 } from './admin.controller.js';
 
 const router = express.Router();
@@ -110,5 +111,6 @@ router.get('/inquiries/stats',               getInquiryStats);
 router.patch('/inquiries/:id',               updateInquiry);
 router.post('/inquiries/:id/approve',        approveInquiry);
 router.post('/inquiries/:id/resend-invite',  resendInquiryInvite);
+router.post('/schools/:id/resend-summary',   resendSchoolSummary);
 
 export default router;
