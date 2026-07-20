@@ -3,7 +3,7 @@ services:
   - type: web
     name: diraschool-api
     runtime: node
-    repo: https://github.com/dennis-dentrix/diraschool-api
+    repo: https://github.com/dennis-dentrix/diraschool-app
     branch: main
     buildCommand: npm install
     startCommand: npm start -w apps/api
@@ -22,7 +22,7 @@ services:
   - type: worker
     name: diraschool-worker
     runtime: node
-    repo: https://github.com/dennis-dentrix/diraschool-api
+    repo: https://github.com/dennis-dentrix/diraschool-app
     branch: main
     buildCommand: npm install
     startCommand: npm run worker -w apps/api
@@ -49,7 +49,7 @@ services:
   - type: web
     name: diraschool
     runtime: node
-    repo: https://github.com/dennis-dentrix/diraschool-api
+    repo: https://github.com/dennis-dentrix/diraschool-app
     branch: main
     buildCommand: npm install && npm run build:web
     startCommand: npm start -w apps/web
